@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   // Stocks: proxy to Finnhub
-  const apiKey = token || process.env.VITE_FINNHUB_KEY;
+  const apiKey = token || process.env.FINNHUB_KEY || process.env.VITE_FINNHUB_KEY;
   const params = new URLSearchParams({ symbol, resolution, from, to, token: apiKey });
   const url = `https://finnhub.io/api/v1/stock/candle?${params}`;
 

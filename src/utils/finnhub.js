@@ -36,7 +36,7 @@ async function fetchBinanceCandles(ticker, resolution, count = 300) {
   }));
 }
 
-// ── Finnhub for stocks ──
+// ── Finnhub for stocks (uses serverless proxy in production) ──
 async function fetchFinnhubCandles(ticker, resolution, count = 300) {
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
@@ -46,20 +46,34 @@ async function fetchFinnhubCandles(ticker, resolution, count = 300) {
 
   const from = now - count * intervalSeconds;
 
-  const params = new URLSearchParams({
-    symbol: ticker,
-    resolution,
-    from: String(from),
-    to: String(now),
-    token: API_KEY,
-  });
+  // In production, route through /api/candles proxy (keeps API key server-side)
+  // In dev with VITE_FINNHUB_KEY, call Finnhub directly
+  const useProxy = !API_KEY || import.meta.env.PROD;
 
-  const url = `https://finnhub.io/api/v1/stock/candle?${params}`;
+  let url;
+  if (useProxy) {
+    const params = new URLSearchParams({
+      symbol: ticker,
+      resolution,
+      from: String(from),
+      to: String(now),
+    });
+    url = `/api/candles?${params}`;
+  } else {
+    const params = new URLSearchParams({
+      symbol: ticker,
+      resolution,
+      from: String(from),
+      to: String(now),
+      token: API_KEY,
+    });
+    url = `https://finnhub.io/api/v1/stock/candle?${params}`;
+  }
 
   const res = await fetch(url);
   if (!res.ok) {
     if (res.status === 403) {
-      throw new Error('API access denied. Check your Finnhub API key in .env (VITE_FINNHUB_KEY).');
+      throw new Error('API access denied. Check your Finnhub API key.');
     }
     if (res.status === 429) {
       throw new Error('Rate limited. Wait a moment and try again.');
