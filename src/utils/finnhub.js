@@ -4,13 +4,40 @@ function isCrypto(ticker) {
   return ticker.includes(':');
 }
 
-function getBaseURL() {
-  // In production (Vercel), use the serverless proxy to avoid CORS
-  // In dev, Vite proxy handles it
-  return '/api';
+// ── Binance public API for crypto (free, no key needed) ──
+async function fetchBinanceCandles(ticker, resolution, count = 300) {
+  // Extract pair from format like "BINANCE:BTCUSDT" → "BTCUSDT"
+  const symbol = ticker.split(':').pop();
+
+  const intervalMap = {
+    '240': '4h',
+    D: '1d',
+  };
+  const interval = intervalMap[resolution] || '4h';
+
+  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${count}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Binance API error: ${res.status}`);
+
+  const data = await res.json();
+  if (!data || data.length === 0) {
+    throw new Error('No data available for this ticker');
+  }
+
+  // Binance kline format: [openTime, open, high, low, close, volume, ...]
+  return data.map((k) => ({
+    t: Math.floor(k[0] / 1000),
+    o: parseFloat(k[1]),
+    h: parseFloat(k[2]),
+    l: parseFloat(k[3]),
+    c: parseFloat(k[4]),
+    v: parseFloat(k[5]),
+  }));
 }
 
-export async function fetchCandles(ticker, resolution, count = 300) {
+// ── Finnhub for stocks ──
+async function fetchFinnhubCandles(ticker, resolution, count = 300) {
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
   if (resolution === '240') intervalSeconds = 4 * 60 * 60;
@@ -18,8 +45,6 @@ export async function fetchCandles(ticker, resolution, count = 300) {
   else intervalSeconds = 60 * 60;
 
   const from = now - count * intervalSeconds;
-  const crypto = isCrypto(ticker);
-  const endpoint = crypto ? 'crypto/candle' : 'stock/candle';
 
   const params = new URLSearchParams({
     symbol: ticker,
@@ -29,18 +54,25 @@ export async function fetchCandles(ticker, resolution, count = 300) {
     token: API_KEY,
   });
 
-  const url = `https://finnhub.io/api/v1/${endpoint}?${params}`;
+  const url = `https://finnhub.io/api/v1/stock/candle?${params}`;
 
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Finnhub API error: ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 403) {
+      throw new Error('API access denied. Check your Finnhub API key in .env (VITE_FINNHUB_KEY).');
+    }
+    if (res.status === 429) {
+      throw new Error('Rate limited. Wait a moment and try again.');
+    }
+    throw new Error(`Finnhub API error: ${res.status}`);
+  }
 
   const data = await res.json();
   if (data.s === 'no_data' || !data.c) {
     throw new Error('No data available for this ticker');
   }
 
-  // Convert to array of candle objects
-  const candles = data.c.map((_, i) => ({
+  return data.c.map((_, i) => ({
     t: data.t[i],
     o: data.o[i],
     h: data.h[i],
@@ -48,8 +80,14 @@ export async function fetchCandles(ticker, resolution, count = 300) {
     c: data.c[i],
     v: data.v[i],
   }));
+}
 
-  return candles;
+// ── Unified fetch ──
+export async function fetchCandles(ticker, resolution, count = 300) {
+  if (isCrypto(ticker)) {
+    return fetchBinanceCandles(ticker, resolution, count);
+  }
+  return fetchFinnhubCandles(ticker, resolution, count);
 }
 
 export async function fetchDualTimeframe(ticker) {
