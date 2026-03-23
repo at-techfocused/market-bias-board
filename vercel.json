@@ -6,6 +6,6 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "env": {
-    "FINNHUB_KEY": "@finnhub-key"
+    "FINNHUB_KEY": "${FINNHUB_KEY}"
   }
 }
