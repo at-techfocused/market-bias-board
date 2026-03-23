@@ -55,8 +55,10 @@ function getAssetName(ticker) {
 }
 
 export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf, onTfChange }) {
-  const loading = data['1H']?.loading || data['4H'].loading || data.D.loading;
-  const error = data['1H']?.error || data['4H'].error || data.D.error;
+  const loading = data['1H']?.loading || data['4H']?.loading || data.D?.loading;
+  // Only show full-panel error if ALL timeframes failed
+  const allErrors = [data['1H']?.error, data['4H']?.error, data.D?.error].filter(Boolean);
+  const error = allErrors.length === 3 ? allErrors[0] : null;
 
   const tickerDisplay = formatTickerDisplay(ticker);
   const assetName = getAssetName(ticker);
