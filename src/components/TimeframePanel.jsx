@@ -47,8 +47,8 @@ function fmtPrice(val) {
   return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 }
 
-// P4: EMA Stack Bars with tooltip for dollar values
-function EMAStackBars({ ema, emaStack, close }) {
+// EMA Stack with inline dollar values — always visible, color-coded
+function EMAStackInline({ ema, emaStack, close }) {
   const stackColor = emaStack === 'BULL' ? '#3fb950' : emaStack === 'BEAR' ? '#f85149' : '#d29922';
 
   const pairs = [
@@ -80,7 +80,7 @@ function EMAStackBars({ ema, emaStack, close }) {
       </div>
     }>
       <div className="py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1">
           <span className="text-[12px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
             EMA Stack
           </span>
@@ -88,21 +88,15 @@ function EMAStackBars({ ema, emaStack, close }) {
             {emaStack}
           </span>
         </div>
-        <div className="flex flex-col gap-[3px]">
-          {[100, 82, 64, 46].map((w, i) => {
-            const val = pairs[i]?.value;
-            const above = val != null && close > val;
-            const color = val == null ? '#1e2d3d' : above ? '#3fb950' : '#f85149';
+        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+          {pairs.map(({ period, value }) => {
+            if (value == null) return null;
+            const above = close > value;
+            const color = above ? '#3fb950' : '#f85149';
             return (
-              <div
-                key={i}
-                className="h-[4px] rounded-sm"
-                style={{
-                  background: color,
-                  opacity: 0.8 - i * 0.12,
-                  width: `${w}%`,
-                }}
-              />
+              <span key={period} className="text-[10px] tabular-nums whitespace-nowrap" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>
+                {above ? '+' : '\u2212'}EMA{period} ${fmtPrice(value)}
+              </span>
             );
           })}
         </div>
@@ -142,8 +136,8 @@ export default function TimeframePanel({ label, signals }) {
 
   return (
     <div className="p-5 pt-4">
-      {/* P4: EMA stack bars instead of inline dollar values */}
-      <EMAStackBars ema={signals.ema} emaStack={signals.emaStack} close={signals.close} />
+      {/* EMA stack with inline dollar values */}
+      <EMAStackInline ema={signals.ema} emaStack={signals.emaStack} close={signals.close} />
 
       {/* P5 + P6: SMMA row - fixed layout, no icon bug */}
       <Tooltip content={

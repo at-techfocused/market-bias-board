@@ -61,19 +61,12 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
   const d = signals.D;
 
   const activeSignals = signals[activeTf];
-  const hasAnyPattern = h1?.pattern || h4?.pattern || d?.pattern;
 
   const cardStyle = {
     background: '#111820',
     border: '1px solid #1e2d3d',
     borderRadius: 8,
   };
-
-  const timeframes = [
-    { key: '1H', label: '1H', signals: h1 },
-    { key: '4H', label: '4H', signals: h4 },
-    { key: 'D', label: 'DAILY', signals: d },
-  ];
 
   return (
     <div className="flex flex-col overflow-y-auto h-full p-4 gap-3" style={{ background: '#0a0e14', scrollbarWidth: 'thin', scrollbarColor: '#1e2d3d transparent' }}>
@@ -101,40 +94,36 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
         />
       </div>
 
-      {/* Timeframe cards */}
-      {timeframes.map(({ key, label, signals: tfSignals }) => {
+      {/* Active Timeframe panel only */}
+      {(() => {
+        const tfMap = { '1H': { label: '1H', signals: h1 }, '4H': { label: '4H', signals: h4 }, D: { label: 'DAILY', signals: d } };
+        const { label, signals: tfSignals } = tfMap[activeTf];
         const tfColor = getBiasColor(tfSignals?.score);
         const tfBias = getBiasLabel(tfSignals?.score);
         return (
-          <div key={key} style={cardStyle} className="overflow-hidden">
+          <div style={cardStyle} className="overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 text-[12px] font-bold tracking-[0.12em] uppercase"
               style={{ color: tfColor, borderBottom: '1px solid #1e2d3d', background: '#0d1219' }}>
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: tfColor, boxShadow: `0 0 8px ${tfColor}` }} />
               {label} &middot; {tfBias} &middot; {tfSignals?.score ?? '--'}/100
             </div>
-            <TimeframePanel label={key} signals={tfSignals} />
+            <TimeframePanel label={activeTf} signals={tfSignals} />
           </div>
         );
-      })}
+      })()}
 
-      {/* Pattern Breakouts card — collapsed when empty (P8) */}
-      <div style={cardStyle} className="overflow-hidden">
-        {hasAnyPattern ? (
+      {/* Pattern Breakouts card — only for active TF */}
+      {activeSignals?.pattern ? (
+        <div style={cardStyle} className="overflow-hidden">
           <div className="px-5 py-4">
             <span className="text-[12px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
               Pattern Breakouts
             </span>
-            {h1?.pattern && (
-              <PatternCard pattern={h1.pattern} timeframe="1H" atr={h1.atr} close={h1.close} />
-            )}
-            {h4?.pattern && (
-              <PatternCard pattern={h4.pattern} timeframe="4H" atr={h4.atr} close={h4.close} />
-            )}
-            {d?.pattern && (
-              <PatternCard pattern={d.pattern} timeframe="Daily" atr={d.atr} close={d.close} />
-            )}
+            <PatternCard pattern={activeSignals.pattern} timeframe={activeTf} atr={activeSignals.atr} close={activeSignals.close} />
           </div>
-        ) : (
+        </div>
+      ) : (
+        <div style={cardStyle} className="overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3">
             <span className="text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
               Pattern Breakouts
@@ -143,8 +132,8 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
               None detected
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Signal Cards — shows active TF */}
       <div style={cardStyle} className="overflow-hidden">

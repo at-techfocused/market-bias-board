@@ -208,10 +208,11 @@ export function detectPattern(candles) {
 }
 
 // ── Scoring (now includes MACD) ──
+// MIXED EMA gives only 5/20 — a mixed stack should meaningfully reduce score
 export function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir) {
   let score = 0;
-  // EMA Stack: 20pts
-  score += emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 10;
+  // EMA Stack: 20pts — MIXED gets only 5 (not 10) to prevent false high scores
+  score += emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 5;
   // SMMA 99: 20pts
   score += smmaPos === 'ABOVE' ? 20 : 0;
   // RSI Zone: 20pts
