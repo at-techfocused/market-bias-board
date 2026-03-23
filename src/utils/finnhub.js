@@ -105,9 +105,12 @@ export async function fetchCandles(ticker, resolution, count = 300) {
 }
 
 export async function fetchDualTimeframe(ticker) {
-  const [h4, daily] = await Promise.all([
-    fetchCandles(ticker, '240', 300),
+  // Finnhub free tier only supports up to 60m resolution for stocks;
+  // Binance supports 4h for crypto
+  const intraRes = isCrypto(ticker) ? '240' : '60';
+  const [intra, daily] = await Promise.all([
+    fetchCandles(ticker, intraRes, 300),
     fetchCandles(ticker, 'D', 300),
   ]);
-  return { '4H': h4, D: daily };
+  return { '4H': intra, D: daily };
 }

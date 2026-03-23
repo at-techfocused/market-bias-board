@@ -30,14 +30,24 @@ export default async function handler(req, res) {
 
   // Stocks: proxy to Finnhub
   const apiKey = token || process.env.FINNHUB_KEY || process.env.VITE_FINNHUB_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'FINNHUB_KEY not configured on server' });
+  }
+
   const params = new URLSearchParams({ symbol, resolution, from, to, token: apiKey });
   const url = `https://finnhub.io/api/v1/stock/candle?${params}`;
 
   try {
     const response = await fetch(url);
     const data = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: data.error || `Finnhub returned ${response.status}` });
+    }
+
     return res.status(200).json(data);
   } catch (err) {
-    return res.status(500).json({ error: 'Failed to fetch from Finnhub' });
+    return res.status(500).json({ error: 'Failed to fetch from Finnhub: ' + err.message });
   }
 }
