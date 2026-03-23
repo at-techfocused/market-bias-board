@@ -1,8 +1,8 @@
 import Tooltip from './Tooltip';
 
 function getBiasColor(score) {
-  if (score <= 45) return '#f85149';
-  if (score >= 56) return '#3fb950';
+  if (score <= 40) return '#f85149';
+  if (score >= 60) return '#3fb950';
   return '#d29922';
 }
 
@@ -40,72 +40,72 @@ function SignalRow({ name, value, colorClass, tooltip, sub }) {
   return row;
 }
 
-function EMADetailBars({ ema, close }) {
+function fmtPrice(val) {
+  if (val == null) return '--';
+  if (val >= 10000) return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  if (val >= 100) return val.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+}
+
+function EMAInlineRow({ ema, close }) {
   if (!ema) return null;
 
   const pairs = [
-    { label: 'EMA 20', value: ema.ema20 },
-    { label: 'EMA 50', value: ema.ema50 },
-    { label: 'EMA 100', value: ema.ema100 },
-    { label: 'EMA 200', value: ema.ema200 },
+    { period: '20', value: ema.ema20 },
+    { period: '50', value: ema.ema50 },
+    { period: '100', value: ema.ema100 },
+    { period: '200', value: ema.ema200 },
   ];
 
   return (
-    <div className="flex flex-col gap-[4px] mt-1.5 mb-1">
-      {pairs.map(({ label, value }) => {
-        if (value == null) return null;
-        const above = close > value;
-        const pct = ((close - value) / value * 100).toFixed(2);
-        const color = above ? '#3fb950' : '#f85149';
-        const maxPct = 5;
-        const barWidth = Math.min(Math.abs(parseFloat(pct)) / maxPct * 100, 100);
-
-        return (
-          <Tooltip
-            key={label}
-            content={
-              <div>
-                <strong style={{ color }}>{label}</strong>: ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <br />
-                Price is <strong style={{ color }}>{above ? 'above' : 'below'}</strong> by {Math.abs(pct)}%
-                <br />
-                <span style={{ color: '#8b949e' }}>
-                  {label === 'EMA 20' && 'Short-term trend (fast). Reacts quickly to price changes.'}
-                  {label === 'EMA 50' && 'Medium-term trend. Key support/resistance level.'}
-                  {label === 'EMA 100' && 'Intermediate trend. Used for swing trade bias.'}
-                  {label === 'EMA 200' && 'Long-term trend. Major institutional support/resistance.'}
-                </span>
-              </div>
-            }
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold w-[52px] shrink-0" style={{ color: '#8b949e' }}>
-                {label}
-              </span>
-              <div className="flex-1 h-[5px] rounded-sm overflow-hidden" style={{ background: '#161e28' }}>
-                <div
-                  className="h-full rounded-sm"
-                  style={{ width: `${barWidth}%`, background: color, opacity: 0.8 }}
-                />
-              </div>
-              <span className="text-[10px] font-bold w-[50px] text-right" style={{ color }}>
-                {above ? '+' : ''}{pct}%
-              </span>
+    <Tooltip content={
+      <div>
+        <strong>EMA Stack</strong> — 20/50/100/200 period Exponential Moving Averages
+        <br /><br />
+        {pairs.map(({ period, value }) => {
+          if (value == null) return null;
+          const above = close > value;
+          const pct = ((close - value) / value * 100).toFixed(2);
+          return (
+            <div key={period} style={{ color: above ? '#3fb950' : '#f85149' }}>
+              EMA {period}: ${fmtPrice(value)} ({above ? '+' : ''}{pct}%)
             </div>
-          </Tooltip>
-        );
-      })}
-    </div>
+          );
+        })}
+        <br />
+        <span style={{ color: '#8b949e' }}>
+          Green = price above EMA (bullish). Red = price below (bearish).
+          When all EMAs stack in order, trend conviction is highest.
+        </span>
+      </div>
+    }>
+      <div className="flex items-center gap-2 py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
+        <span className="text-[11px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
+          EMA 20/50/100/200
+        </span>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {pairs.map(({ period, value }) => {
+            if (value == null) return <span key={period} className="text-[12px] font-bold" style={{ color: '#636e7b' }}>--</span>;
+            const above = close > value;
+            return (
+              <span key={period} className="text-[12px] font-bold tabular-nums" style={{ color: above ? '#3fb950' : '#f85149' }}>
+                {fmtPrice(value)}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </Tooltip>
   );
 }
 
 export default function TimeframePanel({ label, signals }) {
-  if (!signals) return <div className="p-4 text-[12px]" style={{ color: '#636e7b' }}>No data</div>;
+  if (!signals) return <div className="p-5 text-[12px]" style={{ color: '#636e7b' }}>No data</div>;
 
   const color = getBiasColor(signals.score);
-  const emaClass = signals.emaStack === 'BULL' ? 'bull' : signals.emaStack === 'BEAR' ? 'bear' : 'mixed';
   const smmaClass = signals.smma99 === 'ABOVE' ? 'bull' : 'bear';
   const rsiClass = signals.rsiZone === 'BULLISH' ? 'bull' : signals.rsiZone === 'BEARISH' ? 'bear' : 'neut';
+  const macdClass = signals.macdDirection === 'BULL' ? 'bull' : signals.macdDirection === 'BEAR' ? 'bear' : 'neut';
   const patternClass = signals.pattern
     ? signals.pattern.direction === 'BULL' ? 'bull' : signals.pattern.direction === 'BEAR' ? 'bear' : 'neut'
     : 'neut';
@@ -113,7 +113,7 @@ export default function TimeframePanel({ label, signals }) {
     ? `${signals.pattern.name === 'Bear Marubozu' ? 'MRUBZU ▼' : signals.pattern.name === 'Bullish Marubozu' ? 'MRUBZU ▲' : 'DOJI ◆'}`
     : 'None';
 
-  const scoreBg = signals.score <= 45 ? '#3d1a1a' : signals.score >= 56 ? '#1a3d22' : '#3d2e0a';
+  const scoreBg = signals.score <= 40 ? '#3d1a1a' : signals.score >= 60 ? '#1a3d22' : '#3d2e0a';
 
   // SMMA details
   const smmaVal = signals.smma99Value;
@@ -121,38 +121,22 @@ export default function TimeframePanel({ label, signals }) {
     ? ((signals.close - smmaVal) / smmaVal * 100).toFixed(2)
     : null;
   const smmaAbove = smmaPct != null ? parseFloat(smmaPct) > 0 : false;
-  const smmaDisplay = signals.smma99;
   const smmaSub = smmaVal != null
-    ? `$${smmaVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · ${smmaAbove ? '+' : ''}${smmaPct}%`
+    ? `$${fmtPrice(smmaVal)} · ${smmaAbove ? '+' : ''}${smmaPct}%`
     : null;
 
+  // MACD text
+  const macdText = signals.macd
+    ? `${signals.macdDirection === 'BULL' ? '▲ Bull' : signals.macdDirection === 'BEAR' ? '▼ Bear' : '◆ Neutral'}`
+    : '--';
+
   return (
-    <div className="p-4 pt-3">
-      <SignalRow
-        name="EMA"
-        value={signals.emaStack}
-        colorClass={emaClass}
-        tooltip={
-          <div>
-            <strong>EMA Stack Alignment</strong>
-            <br />
-            Checks if EMA 20 {'>'} 50 {'>'} 100 {'>'} 200 (BULL) or the reverse (BEAR).
-            <br />
-            <span style={{ color: '#8b949e' }}>
-              {signals.emaStack === 'BULL' && 'All EMAs are perfectly stacked bullish — strong uptrend.'}
-              {signals.emaStack === 'BEAR' && 'All EMAs are perfectly stacked bearish — strong downtrend.'}
-              {signals.emaStack === 'MIXED' && 'EMAs are not in order — trend is unclear or transitioning.'}
-            </span>
-            <br />
-            <em style={{ color: '#636e7b' }}>Click the EMA bars below for individual values.</em>
-          </div>
-        }
-      />
-      <EMADetailBars ema={signals.ema} close={signals.close} />
+    <div className="p-5 pt-4">
+      <EMAInlineRow ema={signals.ema} close={signals.close} />
 
       <SignalRow
         name="SMMA 99"
-        value={smmaDisplay}
+        value={signals.smma99}
         sub={smmaSub}
         colorClass={smmaClass}
         tooltip={
@@ -161,16 +145,45 @@ export default function TimeframePanel({ label, signals }) {
             <br />
             {smmaVal != null && (
               <>
-                Current SMMA: <strong>${smmaVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                Current SMMA: <strong>${fmtPrice(smmaVal)}</strong>
                 <br />
                 Price is <strong style={{ color: smmaAbove ? '#3fb950' : '#f85149' }}>{smmaAbove ? 'above' : 'below'}</strong> by {Math.abs(parseFloat(smmaPct))}%
                 <br />
               </>
             )}
             <span style={{ color: '#8b949e' }}>
-              SMMA 99 acts as a long-term trend filter. Price above = bullish bias. Price below = bearish bias.
+              SMMA 99 acts as a long-term trend filter. Price above = bullish bias, below = bearish.
             </span>
           </div>
+        }
+      />
+
+      <SignalRow
+        name="MACD"
+        value={macdText}
+        colorClass={macdClass}
+        tooltip={
+          signals.macd ? (
+            <div>
+              <strong>MACD (12, 26, 9)</strong>
+              <br />
+              MACD Line: {signals.macd.macd.toFixed(2)}
+              <br />
+              Signal Line: {signals.macd.signal.toFixed(2)}
+              <br />
+              Histogram: <span style={{ color: signals.macd.histogram > 0 ? '#3fb950' : '#f85149' }}>
+                {signals.macd.histogram > 0 ? '+' : ''}{signals.macd.histogram.toFixed(2)}
+              </span>
+              <br />
+              <span style={{ color: '#8b949e' }}>
+                {signals.macdDirection === 'BULL' && 'MACD above signal line — bullish momentum.'}
+                {signals.macdDirection === 'BEAR' && 'MACD below signal line — bearish momentum.'}
+                {signals.macdDirection === 'NEUTRAL' && 'MACD near signal line — momentum unclear.'}
+              </span>
+            </div>
+          ) : (
+            <div><strong>MACD</strong>: Not enough data to compute.</div>
+          )
         }
       />
 
@@ -180,15 +193,13 @@ export default function TimeframePanel({ label, signals }) {
         colorClass={rsiClass}
         tooltip={
           <div>
-            <strong>Relative Strength Index (14 period)</strong>
+            <strong>RSI (14 period)</strong>: {signals.rsi}
             <br />
-            Current: <strong>{signals.rsi}</strong>
+            {signals.rsiZone === 'BULLISH' && <span style={{ color: '#3fb950' }}>Above 55 = Bullish momentum</span>}
+            {signals.rsiZone === 'BEARISH' && <span style={{ color: '#f85149' }}>Below 45 = Bearish momentum</span>}
+            {signals.rsiZone === 'NEUTRAL' && <span style={{ color: '#d29922' }}>45-55 = Neutral zone</span>}
             <br />
-            {signals.rsiZone === 'BULLISH' && <span style={{ color: '#3fb950' }}>Above 55 = Bullish momentum zone</span>}
-            {signals.rsiZone === 'BEARISH' && <span style={{ color: '#f85149' }}>Below 45 = Bearish momentum zone</span>}
-            {signals.rsiZone === 'NEUTRAL' && <span style={{ color: '#d29922' }}>45-55 = Neutral zone, no clear momentum</span>}
-            <br />
-            <span style={{ color: '#8b949e' }}>RSI measures momentum. Not overbought/oversold — used as a trend strength gauge.</span>
+            <span style={{ color: '#8b949e' }}>Momentum gauge, not overbought/oversold.</span>
           </div>
         }
       />
@@ -200,34 +211,24 @@ export default function TimeframePanel({ label, signals }) {
         tooltip={
           signals.pattern ? (
             <div>
-              <strong>{signals.pattern.name}</strong> detected
+              <strong>{signals.pattern.name}</strong> — {signals.pattern.direction}
               <br />
-              Direction: <strong style={{ color: patternClass === 'bull' ? '#3fb950' : patternClass === 'bear' ? '#f85149' : '#d29922' }}>
-                {signals.pattern.direction}
-              </strong>
-              <br />
-              Body: {signals.pattern.bodyPct}% of candle range
-              <br />
-              Type: {signals.pattern.type} ({signals.pattern.type === 1 ? 'High conviction' : 'Standard'})
+              Body: {signals.pattern.bodyPct}% of candle range · Type {signals.pattern.type}
               <br />
               <span style={{ color: '#8b949e' }}>
-                {signals.pattern.name === 'Doji' && 'Doji indicates indecision — potential reversal or continuation.'}
-                {signals.pattern.name === 'Bullish Marubozu' && 'Strong bullish candle with minimal wicks — buyers dominated.'}
-                {signals.pattern.name === 'Bear Marubozu' && 'Strong bearish candle with minimal wicks — sellers dominated.'}
+                {signals.pattern.name === 'Doji' && 'Indecision — potential reversal or continuation.'}
+                {signals.pattern.name === 'Bullish Marubozu' && 'Strong buying — minimal wicks, buyers dominated.'}
+                {signals.pattern.name === 'Bear Marubozu' && 'Strong selling — minimal wicks, sellers dominated.'}
               </span>
             </div>
           ) : (
-            <div>
-              <strong>No pattern detected</strong>
-              <br />
-              <span style={{ color: '#8b949e' }}>Scans last 3 candles for Doji, Bullish Marubozu, or Bear Marubozu formations.</span>
-            </div>
+            <div>No pattern detected. Scans last 3 candles for Doji, Bull/Bear Marubozu.</div>
           )
         }
       />
 
       <div
-        className="mt-2 py-[6px] px-[8px] rounded-[3px] text-[12px] font-bold tracking-wide text-center"
+        className="mt-2.5 py-[6px] px-[8px] rounded text-[12px] font-bold tracking-wide text-center"
         style={{ background: scoreBg, color }}
       >
         SCORE {signals.score}/100
