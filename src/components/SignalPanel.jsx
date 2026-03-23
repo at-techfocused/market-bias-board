@@ -6,15 +6,15 @@ import MiniCardGrid from './MiniCardGrid';
 
 function getBiasLabel(score) {
   if (score == null) return 'LOADING';
-  if (score <= 45) return 'BEARISH';
-  if (score >= 56) return 'BULLISH';
+  if (score <= 40) return 'BEARISH';
+  if (score >= 60) return 'BULLISH';
   return 'NEUTRAL';
 }
 
 function getBiasColor(score) {
   if (score == null) return '#636e7b';
-  if (score <= 45) return '#f85149';
-  if (score >= 56) return '#3fb950';
+  if (score <= 40) return '#f85149';
+  if (score >= 60) return '#3fb950';
   return '#d29922';
 }
 
@@ -56,32 +56,34 @@ export default function SignalPanel({ signals, data, lastFetch }) {
 
   return (
     <div className="flex flex-col overflow-y-auto h-full" style={{ background: '#0d1117', scrollbarWidth: 'thin', scrollbarColor: '#1e2d3d transparent' }}>
-      <CompositeScore composite={signals.composite} lastFetch={lastFetch} />
+      <CompositeScore composite={signals.composite} lastFetch={lastFetch} signals={signals} />
       <ConflictBadge signals={signals} />
 
-      {/* Dual timeframe headers */}
-      <div className="grid grid-cols-2 mt-3" style={{ borderBottom: '2px solid #1e2d3d' }}>
-        <div className="flex items-center gap-2 px-4 py-3 text-[12px] font-bold tracking-[0.12em] uppercase min-w-0 overflow-hidden"
-          style={{ color: h4Color, borderRight: '3px solid #2d4a5e' }}>
-          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: h4Color, boxShadow: `0 0 8px ${h4Color}` }} />
-          <span className="truncate">4H · {h4Bias}</span>
+      {/* 4H Timeframe - full width */}
+      <div>
+        <div className="flex items-center gap-2 px-5 py-3 text-[12px] font-bold tracking-[0.12em] uppercase"
+          style={{ color: h4Color, borderBottom: '1px solid #1e2d3d', background: '#0a0f14' }}>
+          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: h4Color, boxShadow: `0 0 8px ${h4Color}` }} />
+          4H · {h4Bias} · {h4?.score ?? '--'}/100
         </div>
-        <div className="flex items-center gap-2 px-4 py-3 text-[12px] font-bold tracking-[0.12em] uppercase min-w-0 overflow-hidden"
-          style={{ color: dColor }}>
-          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: dColor, boxShadow: `0 0 8px ${dColor}` }} />
-          <span className="truncate">DAILY · {dBias}</span>
-        </div>
+        <TimeframePanel label="4H" signals={h4} />
       </div>
 
-      {/* Dual timeframe panels */}
-      <div className="grid grid-cols-2" style={{ borderBottom: '2px solid #1e2d3d' }}>
-        <div className="min-w-0 overflow-hidden" style={{ borderRight: '3px solid #2d4a5e' }}>
-          <TimeframePanel label="4H" signals={h4} />
+      {/* Thick separator */}
+      <div style={{ height: 4, background: 'linear-gradient(90deg, #1e2d3d 0%, #2d4a5e 50%, #1e2d3d 100%)' }} />
+
+      {/* Daily Timeframe - full width */}
+      <div>
+        <div className="flex items-center gap-2 px-5 py-3 text-[12px] font-bold tracking-[0.12em] uppercase"
+          style={{ color: dColor, borderBottom: '1px solid #1e2d3d', background: '#0a0f14' }}>
+          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dColor, boxShadow: `0 0 8px ${dColor}` }} />
+          DAILY · {dBias} · {d?.score ?? '--'}/100
         </div>
-        <div className="min-w-0 overflow-hidden">
-          <TimeframePanel label="D" signals={d} />
-        </div>
+        <TimeframePanel label="D" signals={d} />
       </div>
+
+      {/* Thick separator */}
+      <div style={{ height: 4, background: 'linear-gradient(90deg, #1e2d3d 0%, #2d4a5e 50%, #1e2d3d 100%)' }} />
 
       {/* Pattern Breakouts */}
       <div className="px-5 py-4" style={{ borderBottom: '2px solid #1e2d3d' }}>
