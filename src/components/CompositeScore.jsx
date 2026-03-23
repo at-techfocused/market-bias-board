@@ -234,23 +234,20 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
         </span>
       </div>
 
-      {/* Main signal label + description (left) + TF Agreement (right) */}
-      <div className="px-5 pb-4" style={{ borderBottom: '1px solid #1e2d3d' }}>
-        <div className="flex items-start justify-between gap-5">
-          {/* Left: Action label + description */}
-          <div className="flex-1 min-w-0">
+      {/* Main signal + TF Agreement row */}
+      <div className="px-5 pb-0">
+        <div className="flex items-start justify-between gap-4">
+          {/* Left: Action label only */}
+          <div className="shrink-0">
             <div
               className="text-[30px] font-bold leading-none tracking-tight"
               style={{ color, textShadow: `0 0 24px ${glow}` }}
             >
               {actionLabel}
             </div>
-            <div className="text-[12px] leading-relaxed mt-3 max-w-[340px]" style={{ color: '#8b949e' }}>
-              {description}
-            </div>
           </div>
 
-          {/* Right: TF Agreement — in its own column, no overlap */}
+          {/* Right: TF Agreement */}
           <Tooltip content={
             <div>
               <strong>TF Agreement</strong>: {agreement}%
@@ -267,18 +264,22 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
               <div className="text-[28px] font-bold leading-none tabular-nums" style={{ color: agreementColor }}>
                 {agreement}%
               </div>
-              <div className="text-[10px] tracking-[0.1em] uppercase font-semibold mt-1.5" style={{ color: '#636e7b' }}>
+              <div className="text-[10px] tracking-[0.1em] uppercase font-semibold mt-1" style={{ color: '#636e7b' }}>
                 TF Agree
-              </div>
-              <div className="w-full h-[5px] rounded overflow-hidden mt-2" style={{ background: '#161e28' }}>
-                <div className="h-full rounded" style={{ width: `${agreement}%`, background: agreementColor }} />
               </div>
             </div>
           </Tooltip>
         </div>
 
-        {/* Score bar */}
-        <div className="mt-4 h-[6px] rounded overflow-hidden" style={{ background: '#161e28' }}>
+        {/* Description — full width below the label row */}
+        <div className="text-[12px] leading-normal mt-2" style={{ color: '#8b949e' }}>
+          {description}
+        </div>
+      </div>
+
+      {/* Score bar + context — separate block below */}
+      <div className="px-5 pt-2 pb-4" style={{ borderBottom: '1px solid #1e2d3d' }}>
+        <div className="h-[6px] rounded overflow-hidden" style={{ background: '#161e28' }}>
           <div
             className="h-full rounded relative"
             style={{
