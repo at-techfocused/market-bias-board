@@ -8,7 +8,7 @@ export default function ConflictBadge({ signals }) {
 
   return (
     <div
-      className="mx-4 mt-2.5 px-3 py-2 rounded flex items-center gap-2 text-[10px] tracking-wide leading-relaxed"
+      className="mx-5 mt-3 px-4 py-2.5 rounded flex items-center gap-2.5 text-[12px] tracking-wide leading-relaxed"
       style={{
         background: '#3d2e0a',
         border: '1px solid #d29922',

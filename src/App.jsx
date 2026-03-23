@@ -63,8 +63,8 @@ export default function App() {
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
       />
-      <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 380px' }}>
-        <div className="flex flex-col" style={{ borderRight: '1px solid #1e2d3d' }}>
+      <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 700px' }}>
+        <div className="flex flex-col" style={{ borderRight: '2px solid #1e2d3d' }}>
           <TradingViewWidget ticker={activeTicker} />
         </div>
         <SignalPanel signals={signals} data={data} lastFetch={lastFetch} />
