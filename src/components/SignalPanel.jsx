@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import CompositeScore from './CompositeScore';
 import TimeframePanel from './TimeframePanel';
 import PatternCard from './PatternCard';
@@ -24,13 +23,43 @@ function formatTickerDisplay(ticker) {
   return parts[parts.length - 1];
 }
 
-export default function SignalPanel({ signals, data, lastFetch, ticker }) {
-  const [activeTf, setActiveTf] = useState('4H');
+// Full asset name mapping
+const ASSET_NAMES = {
+  BTCUSDT: 'Bitcoin / USD',
+  ETHUSDT: 'Ethereum / USD',
+  SOLUSDT: 'Solana / USD',
+  BNBUSDT: 'Binance Coin / USD',
+  XRPUSDT: 'Ripple / USD',
+  ADAUSDT: 'Cardano / USD',
+  DOGEUSDT: 'Dogecoin / USD',
+  DOTUSDT: 'Polkadot / USD',
+  AVAXUSDT: 'Avalanche / USD',
+  LINKUSDT: 'Chainlink / USD',
+  MATICUSDT: 'Polygon / USD',
+  AAPL: 'Apple Inc.',
+  TSLA: 'Tesla Inc.',
+  MSFT: 'Microsoft Corp.',
+  AMZN: 'Amazon.com Inc.',
+  GOOGL: 'Alphabet Inc.',
+  META: 'Meta Platforms Inc.',
+  NVDA: 'NVIDIA Corp.',
+  AMD: 'Advanced Micro Devices',
+  SPY: 'S&P 500 ETF',
+  QQQ: 'Nasdaq 100 ETF',
+};
 
+function getAssetName(ticker) {
+  if (!ticker) return '';
+  const symbol = formatTickerDisplay(ticker);
+  return ASSET_NAMES[symbol] || symbol;
+}
+
+export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf, onTfChange }) {
   const loading = data['1H']?.loading || data['4H'].loading || data.D.loading;
   const error = data['1H']?.error || data['4H'].error || data.D.error;
 
   const tickerDisplay = formatTickerDisplay(ticker);
+  const assetName = getAssetName(ticker);
 
   if (loading) {
     return (
@@ -38,7 +67,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
         <div className="text-center">
           <div className="w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3"
             style={{ borderColor: '#1e2d3d', borderTopColor: '#00d4ff' }} />
-          <div className="text-[13px] tracking-wide" style={{ color: '#636e7b' }}>Loading {tickerDisplay}...</div>
+          <div className="text-[14px] tracking-wide" style={{ color: '#636e7b' }}>Loading {tickerDisplay}...</div>
         </div>
       </div>
     );
@@ -48,9 +77,9 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
     return (
       <div className="flex items-center justify-center h-full" style={{ background: '#0d1117' }}>
         <div className="text-center px-6 max-w-full">
-          <div className="text-[18px] mb-2" style={{ color: '#f85149' }}>&#9888;</div>
-          <div className="text-[13px] tracking-wide leading-relaxed break-words" style={{ color: '#f85149' }}>{error}</div>
-          <div className="text-[12px] mt-2" style={{ color: '#636e7b' }}>Check your API key or try a different ticker</div>
+          <div className="text-[20px] mb-2" style={{ color: '#f85149' }}>&#9888;</div>
+          <div className="text-[14px] tracking-wide leading-relaxed break-words" style={{ color: '#f85149' }}>{error}</div>
+          <div className="text-[13px] mt-2" style={{ color: '#636e7b' }}>Check your API key or try a different ticker</div>
         </div>
       </div>
     );
@@ -71,15 +100,20 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
   return (
     <div className="flex flex-col overflow-y-auto h-full p-4 gap-3" style={{ background: '#0a0e14', scrollbarWidth: 'thin', scrollbarColor: '#1e2d3d transparent' }}>
 
-      {/* Ticker header */}
+      {/* Ticker header — larger with full name */}
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ background: '#00d4ff', boxShadow: '0 0 8px rgba(0,212,255,0.4)' }} />
-          <span className="text-[16px] font-bold tracking-wide" style={{ color: '#cdd9e5' }}>
-            {tickerDisplay}
-          </span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#00d4ff', boxShadow: '0 0 8px rgba(0,212,255,0.4)' }} />
+          <div>
+            <span className="text-[20px] font-bold tracking-wide" style={{ color: '#cdd9e5' }}>
+              {tickerDisplay}
+            </span>
+            <span className="text-[13px] ml-2" style={{ color: '#636e7b' }}>
+              {assetName !== tickerDisplay ? assetName : ''}
+            </span>
+          </div>
         </div>
-        <span className="text-[11px]" style={{ color: '#3d4a57' }}>
+        <span className="text-[14px] font-bold tabular-nums" style={{ color: '#8b949e' }}>
           {activeSignals?.close != null ? `$${activeSignals.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
         </span>
       </div>
@@ -88,7 +122,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
       <div style={cardStyle} className="overflow-hidden">
         <CompositeScore
           activeTf={activeTf}
-          onTfChange={setActiveTf}
+          onTfChange={onTfChange}
           signals={signals}
           lastFetch={lastFetch}
         />
@@ -102,10 +136,14 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
         const tfBias = getBiasLabel(tfSignals?.score);
         return (
           <div style={cardStyle} className="overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 text-[12px] font-bold tracking-[0.12em] uppercase"
+            <div className="flex items-center gap-2.5 px-5 py-3.5 text-[14px] font-bold tracking-[0.12em] uppercase"
               style={{ color: tfColor, borderBottom: '1px solid #1e2d3d', background: '#0d1219' }}>
-              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: tfColor, boxShadow: `0 0 8px ${tfColor}` }} />
-              {label} &middot; {tfBias} &middot; {tfSignals?.score ?? '--'}/100
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ background: tfColor, boxShadow: `0 0 8px ${tfColor}` }} />
+              {label}
+              <span style={{ color: '#636e7b' }}>&middot;</span>
+              {tfBias}
+              <span style={{ color: '#636e7b' }}>&middot;</span>
+              <span>Score {tfSignals?.score ?? '--'}/100</span>
             </div>
             <TimeframePanel label={activeTf} signals={tfSignals} />
           </div>
@@ -116,7 +154,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
       {activeSignals?.pattern ? (
         <div style={cardStyle} className="overflow-hidden">
           <div className="px-5 py-4">
-            <span className="text-[12px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
+            <span className="text-[13px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
               Pattern Breakouts
             </span>
             <PatternCard pattern={activeSignals.pattern} timeframe={activeTf} atr={activeSignals.atr} close={activeSignals.close} />
@@ -124,11 +162,11 @@ export default function SignalPanel({ signals, data, lastFetch, ticker }) {
         </div>
       ) : (
         <div style={cardStyle} className="overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3">
-            <span className="text-[11px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
+          <div className="flex items-center justify-between px-5 py-3.5">
+            <span className="text-[13px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
               Pattern Breakouts
             </span>
-            <span className="text-[11px]" style={{ color: '#636e7b' }}>
+            <span className="text-[12px]" style={{ color: '#636e7b' }}>
               None detected
             </span>
           </div>

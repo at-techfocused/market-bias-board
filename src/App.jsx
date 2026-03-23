@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import TradingViewWidget from './components/TradingViewWidget';
 import SignalPanel from './components/SignalPanel';
@@ -27,8 +27,15 @@ export default function App() {
   });
   const [watchlist, setWatchlist] = useState(loadWatchlist);
 
+  const [activeTf, setActiveTf] = useState('4H');
   const { data, lastFetch, loadTicker } = useFinnhub();
   const signals = useIndicators(data);
+
+  // Map TF selection to TradingView interval
+  const chartInterval = useMemo(() => {
+    const map = { '1H': '60', '4H': '240', D: 'D' };
+    return map[activeTf] || '240';
+  }, [activeTf]);
 
   useEffect(() => {
     loadTicker(activeTicker);
@@ -65,9 +72,9 @@ export default function App() {
       />
       <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 700px' }}>
         <div className="flex flex-col" style={{ borderRight: '2px solid #1e2d3d' }}>
-          <TradingViewWidget ticker={activeTicker} />
+          <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
-        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} />
+        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
       </div>
     </div>
   );

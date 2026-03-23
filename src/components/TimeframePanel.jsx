@@ -16,17 +16,17 @@ function SignalRow({ name, value, colorClass, tooltip, sub }) {
   const c = colorMap[colorClass] || '#636e7b';
 
   const row = (
-    <div className="flex items-center justify-between gap-2 py-[8px]"
+    <div className="flex items-center justify-between gap-2 py-[10px]"
       style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-      <span className="text-[12px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
+      <span className="text-[13px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
         {name}
       </span>
       <div className="text-right min-w-0">
-        <span className="text-[13px] font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block" style={{ color: c }}>
+        <span className="text-[14px] font-bold tracking-wide whitespace-nowrap overflow-hidden text-ellipsis block" style={{ color: c }}>
           {value}
         </span>
         {sub && (
-          <span className="text-[10px] tracking-wide block" style={{ color: '#636e7b' }}>
+          <span className="text-[11px] tracking-wide block" style={{ color: '#636e7b' }}>
             {sub}
           </span>
         )}
@@ -79,22 +79,22 @@ function EMAStackInline({ ema, emaStack, close }) {
         </span>
       </div>
     }>
-      <div className="py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[12px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
+      <div className="py-[10px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[13px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
             EMA Stack
           </span>
-          <span className="text-[13px] font-bold" style={{ color: stackColor }}>
+          <span className="text-[14px] font-bold" style={{ color: stackColor }}>
             {emaStack}
           </span>
         </div>
-        <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {pairs.map(({ period, value }) => {
             if (value == null) return null;
             const above = close > value;
             const color = above ? '#3fb950' : '#f85149';
             return (
-              <span key={period} className="text-[10px] tabular-nums whitespace-nowrap" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>
+              <span key={period} className="text-[11px] tabular-nums whitespace-nowrap" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>
                 {above ? '+' : '\u2212'}EMA{period} ${fmtPrice(value)}
               </span>
             );
@@ -106,7 +106,7 @@ function EMAStackInline({ ema, emaStack, close }) {
 }
 
 export default function TimeframePanel({ label, signals }) {
-  if (!signals) return <div className="p-5 text-[12px]" style={{ color: '#636e7b' }}>No data</div>;
+  if (!signals) return <div className="p-5 text-[13px]" style={{ color: '#636e7b' }}>No data</div>;
 
   const color = getBiasColor(signals.score);
   const smmaClass = signals.smma99 === 'ABOVE' ? 'bull' : 'bear';
@@ -121,7 +121,7 @@ export default function TimeframePanel({ label, signals }) {
 
   const scoreBg = signals.score <= 40 ? '#3d1a1a' : signals.score >= 60 ? '#1a3d22' : '#3d2e0a';
 
-  // P5: SMMA layout - tighter with label | status | price + %
+  // SMMA layout
   const smmaVal = signals.smma99Value;
   const smmaPct = smmaVal != null && signals.close != null
     ? ((signals.close - smmaVal) / smmaVal * 100).toFixed(2)
@@ -139,7 +139,7 @@ export default function TimeframePanel({ label, signals }) {
       {/* EMA stack with inline dollar values */}
       <EMAStackInline ema={signals.ema} emaStack={signals.emaStack} close={signals.close} />
 
-      {/* P5 + P6: SMMA row - fixed layout, no icon bug */}
+      {/* SMMA row */}
       <Tooltip content={
         <div>
           <strong>Smoothed Moving Average (99 period)</strong>
@@ -155,18 +155,18 @@ export default function TimeframePanel({ label, signals }) {
           <span style={{ color: '#8b949e' }}>Long-term trend filter. Above = bullish, below = bearish.</span>
         </div>
       }>
-        <div className="flex items-center gap-2 py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-          <span className="text-[12px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
+        <div className="flex items-center gap-2 py-[10px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
+          <span className="text-[13px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
             SMMA 99
           </span>
-          <span className="text-[13px] font-bold" style={{ color: smmaColor }}>
+          <span className="text-[14px] font-bold" style={{ color: smmaColor }}>
             {signals.smma99}
           </span>
-          <span className="text-[11px] ml-auto tabular-nums" style={{ color: '#636e7b' }}>
+          <span className="text-[12px] ml-auto tabular-nums" style={{ color: '#636e7b' }}>
             {smmaVal != null ? `$${fmtPrice(smmaVal)}` : ''}
           </span>
           {smmaPct != null && (
-            <span className="text-[11px] font-bold tabular-nums" style={{ color: smmaColor }}>
+            <span className="text-[12px] font-bold tabular-nums" style={{ color: smmaColor }}>
               {smmaAbove ? '+' : ''}{smmaPct}%
             </span>
           )}
@@ -233,7 +233,7 @@ export default function TimeframePanel({ label, signals }) {
       />
 
       <div
-        className="mt-2.5 py-[6px] px-[8px] rounded text-[12px] font-bold tracking-wide text-center"
+        className="mt-3 py-[8px] px-[10px] rounded text-[13px] font-bold tracking-wide text-center"
         style={{ background: scoreBg, color }}
       >
         SCORE {signals.score}/100

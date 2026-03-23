@@ -10,15 +10,15 @@ function MiniCard({ label, value, sub, colorClass, tooltip }) {
   const c = colorMap[colorClass] || '#cdd9e5';
 
   const card = (
-    <div className="rounded-lg p-3 pb-2.5 text-center overflow-hidden" style={{ background: '#0d1219', border: '1px solid #1e2d3d' }}>
-      <div className="text-[10px] tracking-[0.1em] uppercase mb-1.5 truncate font-semibold" style={{ color: '#636e7b' }}>
+    <div className="rounded-lg p-3.5 pb-3 text-center overflow-hidden" style={{ background: '#0d1219', border: '1px solid #1e2d3d' }}>
+      <div className="text-[11px] tracking-[0.1em] uppercase mb-1.5 truncate font-semibold" style={{ color: '#636e7b' }}>
         {label}
       </div>
-      <div className="text-[22px] font-bold tracking-tight truncate leading-tight" style={{ color: c }}>
+      <div className="text-[24px] font-bold tracking-tight truncate leading-tight" style={{ color: c }}>
         {value}
       </div>
       {sub && (
-        <div className="text-[10px] mt-1 tracking-wide truncate" style={{ color: typeof sub === 'object' ? undefined : '#636e7b' }}>
+        <div className="text-[11px] mt-1 tracking-wide truncate" style={{ color: typeof sub === 'object' ? undefined : '#636e7b' }}>
           {sub}
         </div>
       )}
@@ -59,7 +59,7 @@ export default function MiniCardGrid({ signals, tfLabel }) {
 
   return (
     <div className="px-5 py-4">
-      <span className="text-[12px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
+      <span className="text-[13px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
         Signal Cards &middot; {tf}
       </span>
       <div className="grid grid-cols-3 gap-2.5 mt-3">
