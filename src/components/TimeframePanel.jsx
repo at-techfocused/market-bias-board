@@ -68,28 +68,36 @@ function EMAInlineRow({ ema, close }) {
           const pct = ((close - value) / value * 100).toFixed(2);
           return (
             <div key={period} style={{ color: above ? '#3fb950' : '#f85149' }}>
-              EMA {period}: ${fmtPrice(value)} ({above ? '+' : ''}{pct}%)
+              EMA {period}: ${fmtPrice(value)} ({above ? '+' : ''}{pct}% from price)
             </div>
           );
         })}
         <br />
         <span style={{ color: '#8b949e' }}>
-          Green = price above EMA (bullish). Red = price below (bearish).
-          When all EMAs stack in order, trend conviction is highest.
+          Green (+) = price above EMA (bullish). Red (−) = price below (bearish).
+          Full stack alignment = highest trend conviction.
         </span>
       </div>
     }>
-      <div className="flex items-center gap-2 py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-        <span className="text-[11px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
-          EMA 20/50/100/200
-        </span>
-        <div className="flex items-center gap-1.5 ml-auto">
-          {pairs.map(({ period, value }) => {
-            if (value == null) return <span key={period} className="text-[12px] font-bold" style={{ color: '#636e7b' }}>--</span>;
+      <div className="py-[8px]" style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
+        <div className="flex items-baseline gap-2 mb-1">
+          <span className="text-[11px] tracking-[0.06em] uppercase shrink-0 font-semibold" style={{ color: '#8b949e' }}>
+            EMA 20/50/100/200
+          </span>
+        </div>
+        <div className="flex items-center gap-0.5 flex-wrap">
+          {pairs.map(({ period, value }, idx) => {
+            if (value == null) return <span key={period} className="text-[13px] font-bold" style={{ color: '#636e7b' }}>--</span>;
             const above = close > value;
+            const pct = ((close - value) / value * 100);
+            const color = above ? '#3fb950' : '#f85149';
+            const sign = above ? '+' : '−';
             return (
-              <span key={period} className="text-[12px] font-bold tabular-nums" style={{ color: above ? '#3fb950' : '#f85149' }}>
-                {fmtPrice(value)}
+              <span key={period} className="flex items-center">
+                {idx > 0 && <span className="text-[10px] mx-1" style={{ color: '#2d4a5e' }}> </span>}
+                <span className="text-[13px] font-bold tabular-nums" style={{ color }}>
+                  {sign}{fmtPrice(value)}
+                </span>
               </span>
             );
           })}

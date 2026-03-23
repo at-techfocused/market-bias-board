@@ -55,7 +55,7 @@ export default function CompositeScore({ composite, lastFetch, signals }) {
   const volVal = h4?.volRatio ?? d?.volRatio;
 
   return (
-    <div style={{ background: '#0d1117' }}>
+    <div>
       {/* Header */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between" style={{ borderBottom: '1px solid #1e2d3d' }}>
         <div className="flex items-center gap-2">
