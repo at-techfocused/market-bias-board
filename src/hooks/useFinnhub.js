@@ -23,6 +23,7 @@ export function useFinnhub() {
       setLastFetch(new Date());
     } catch (err) {
       const errorMsg = err.message || 'Failed to fetch data';
+      console.error(`[BiasBoard] Failed to load ${ticker}:`, errorMsg);
       setData({
         '4H': { candles: null, loading: false, error: errorMsg },
         D: { candles: null, loading: false, error: errorMsg },
