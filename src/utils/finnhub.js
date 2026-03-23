@@ -38,6 +38,7 @@ async function fetchViaProxy(ticker, resolution) {
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
   if (resolution === '240') intervalSeconds = 4 * 60 * 60;
+  else if (resolution === '60') intervalSeconds = 60 * 60;
   else if (resolution === 'W') intervalSeconds = 7 * 24 * 60 * 60;
   else if (resolution === 'D') intervalSeconds = 24 * 60 * 60;
   else intervalSeconds = 60 * 60;
@@ -159,17 +160,23 @@ export async function fetchCandles(ticker, resolution) {
   return fetchYahooDirect(ticker, resolution);
 }
 
-export async function fetchDualTimeframe(ticker) {
-  // Crypto: 4H + Daily via CryptoCompare
-  // Stocks: Daily + Weekly via Yahoo Finance
-  const [shortRes, longRes] = isCrypto(ticker)
-    ? ['240', 'D']
-    : ['D', 'W'];
+export async function fetchTripleTimeframe(ticker) {
+  // Crypto: 1H + 4H + Daily via CryptoCompare
+  // Stocks: 1H + Daily + Weekly via Yahoo Finance
+  const resolutions = isCrypto(ticker)
+    ? ['60', '240', 'D']
+    : ['60', 'D', 'W'];
 
-  const [shortTf, longTf] = await Promise.all([
-    fetchCandles(ticker, shortRes),
-    fetchCandles(ticker, longRes),
+  const [h1Tf, shortTf, longTf] = await Promise.all([
+    fetchCandles(ticker, resolutions[0]),
+    fetchCandles(ticker, resolutions[1]),
+    fetchCandles(ticker, resolutions[2]),
   ]);
 
-  return { '4H': shortTf, D: longTf };
+  return { '1H': h1Tf, '4H': shortTf, D: longTf };
+}
+
+// Keep backward compat
+export async function fetchDualTimeframe(ticker) {
+  return fetchTripleTimeframe(ticker);
 }
