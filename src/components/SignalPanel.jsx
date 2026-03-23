@@ -37,9 +37,9 @@ export default function SignalPanel({ signals, data, lastFetch }) {
   if (error) {
     return (
       <div className="flex items-center justify-center h-full" style={{ background: '#0d1117' }}>
-        <div className="text-center px-6">
+        <div className="text-center px-6 max-w-full">
           <div className="text-[14px] mb-2" style={{ color: '#f85149' }}>⚠</div>
-          <div className="text-[11px] tracking-wide" style={{ color: '#f85149' }}>{error}</div>
+          <div className="text-[11px] tracking-wide leading-relaxed break-words" style={{ color: '#f85149' }}>{error}</div>
           <div className="text-[10px] mt-2" style={{ color: '#636e7b' }}>Check your API key or try a different ticker</div>
         </div>
       </div>
@@ -61,24 +61,24 @@ export default function SignalPanel({ signals, data, lastFetch }) {
 
       {/* Dual timeframe headers */}
       <div className="grid grid-cols-2 mt-3" style={{ borderBottom: '1px solid #1e2d3d' }}>
-        <div className="flex items-center gap-2 px-4 py-2 text-[9px] font-bold tracking-[0.15em] uppercase"
+        <div className="flex items-center gap-1.5 px-3 py-2 text-[8px] font-bold tracking-[0.12em] uppercase min-w-0 overflow-hidden"
           style={{ color: h4Color, borderRight: '1px solid #1e2d3d' }}>
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: h4Color, boxShadow: `0 0 6px ${h4Color}` }} />
-          4H · {h4Bias}
+          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: h4Color, boxShadow: `0 0 6px ${h4Color}` }} />
+          <span className="truncate">4H · {h4Bias}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 text-[9px] font-bold tracking-[0.15em] uppercase"
+        <div className="flex items-center gap-1.5 px-3 py-2 text-[8px] font-bold tracking-[0.12em] uppercase min-w-0 overflow-hidden"
           style={{ color: dColor }}>
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: dColor, boxShadow: `0 0 6px ${dColor}` }} />
-          DAILY · {dBias}
+          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dColor, boxShadow: `0 0 6px ${dColor}` }} />
+          <span className="truncate">DAILY · {dBias}</span>
         </div>
       </div>
 
       {/* Dual timeframe panels */}
       <div className="grid grid-cols-2" style={{ borderBottom: '1px solid #1e2d3d' }}>
-        <div style={{ borderRight: '1px solid #1e2d3d' }}>
+        <div className="min-w-0 overflow-hidden" style={{ borderRight: '1px solid #1e2d3d' }}>
           <TimeframePanel label="4H" signals={h4} />
         </div>
-        <div>
+        <div className="min-w-0 overflow-hidden">
           <TimeframePanel label="D" signals={d} />
         </div>
       </div>

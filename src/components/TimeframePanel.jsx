@@ -20,16 +20,14 @@ function SignalRow({ name, value, colorClass }) {
   const c = colorMap[colorClass] || '#636e7b';
 
   return (
-    <div className="flex items-start justify-between gap-1.5 py-[7px]"
+    <div className="flex items-center justify-between gap-1 py-[6px]"
       style={{ borderBottom: '1px solid rgba(30,45,61,0.5)' }}>
-      <span className="text-[9px] tracking-[0.08em] uppercase flex-1 pt-[1px]" style={{ color: '#636e7b' }}>
+      <span className="text-[8px] tracking-[0.06em] uppercase shrink-0" style={{ color: '#636e7b' }}>
         {name}
       </span>
-      <span className="text-[10px] font-bold tracking-wide text-right" style={{ color: c }}>
+      <span className="text-[9px] font-bold tracking-wide text-right whitespace-nowrap overflow-hidden text-ellipsis min-w-0" style={{ color: c }}>
         {value}
       </span>
-      <div className="w-1.5 h-1.5 rounded-full mt-[2px] shrink-0"
-        style={{ background: c, boxShadow: `0 0 6px ${c}40` }} />
     </div>
   );
 }
@@ -39,11 +37,11 @@ function EMAStackBars({ emaStack }) {
   const widths = [100, 85, 70, 55];
 
   return (
-    <div className="flex flex-col gap-[2px] mt-1">
+    <div className="flex flex-col gap-[1px] mt-1">
       {widths.map((w, i) => (
         <div
           key={i}
-          className="h-[3px] rounded-sm"
+          className="h-[2px] rounded-sm"
           style={{
             background: color,
             opacity: 0.9 - i * 0.18,
@@ -73,19 +71,19 @@ export default function TimeframePanel({ label, signals }) {
   const scoreBg = signals.score <= 45 ? '#3d1a1a' : signals.score >= 56 ? '#1a3d22' : '#3d2e0a';
 
   return (
-    <div className="p-3 pt-3">
-      <SignalRow name="EMA Stack" value={signals.emaStack} colorClass={emaClass} />
+    <div className="p-2.5 pt-2.5">
+      <SignalRow name="EMA" value={signals.emaStack} colorClass={emaClass} />
       <EMAStackBars emaStack={signals.emaStack} />
-      <div className="mt-2">
-        <SignalRow name="SMMA 99" value={signals.smma99} colorClass={smmaClass} />
+      <div className="mt-1.5">
+        <SignalRow name="SMMA" value={signals.smma99} colorClass={smmaClass} />
       </div>
-      <SignalRow name="RSI Zone" value={String(signals.rsi)} colorClass={rsiClass} />
+      <SignalRow name="RSI" value={String(signals.rsi)} colorClass={rsiClass} />
       <SignalRow name="Pattern" value={patternText} colorClass={patternClass} />
       <div
-        className="mt-1.5 py-[5px] px-[7px] rounded-[3px] text-[9px] tracking-wide text-center"
+        className="mt-1.5 py-[4px] px-[5px] rounded-[3px] text-[8px] tracking-wide text-center"
         style={{ background: scoreBg, color }}
       >
-        SCORE {signals.score}/100
+        {signals.score}/100
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-const API_KEY = import.meta.env.VITE_FINNHUB_KEY || '';
 const IS_PROD = import.meta.env.PROD;
 
 function isCrypto(ticker) {
@@ -34,8 +33,8 @@ function parseNormalizedCandles(data) {
   }));
 }
 
-// ── Fetch via serverless proxy (production) ──
-async function fetchViaProxy(ticker, resolution, count = 300) {
+// ── Fetch via serverless proxy (production — handles both crypto & stocks) ──
+async function fetchViaProxy(ticker, resolution) {
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
   if (resolution === '240') intervalSeconds = 4 * 60 * 60;
@@ -43,7 +42,7 @@ async function fetchViaProxy(ticker, resolution, count = 300) {
   else if (resolution === 'D') intervalSeconds = 24 * 60 * 60;
   else intervalSeconds = 60 * 60;
 
-  const from = now - count * intervalSeconds;
+  const from = now - 300 * intervalSeconds;
   const params = new URLSearchParams({
     symbol: ticker,
     resolution,
@@ -63,7 +62,7 @@ async function fetchViaProxy(ticker, resolution, count = 300) {
 }
 
 // ── CryptoCompare direct call (dev mode) ──
-async function fetchCryptoDirect(ticker, resolution, count = 300) {
+async function fetchCryptoDirect(ticker, resolution) {
   const pair = ticker.split(':').pop();
   const { fsym, tsym } = parseCryptoPair(pair);
 
@@ -75,7 +74,7 @@ async function fetchCryptoDirect(ticker, resolution, count = 300) {
   };
   const { endpoint, aggregate } = endpointMap[resolution] || endpointMap['240'];
 
-  const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=${count}&aggregate=${aggregate}`;
+  const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=300&aggregate=${aggregate}`;
   const res = await fetch(url);
   const json = await res.json();
 
@@ -103,68 +102,73 @@ async function fetchCryptoDirect(ticker, resolution, count = 300) {
   }));
 }
 
-// ── Finnhub direct call (dev mode with API key) ──
-async function fetchFinnhubDirect(ticker, resolution, count = 300) {
-  if (!API_KEY) {
-    throw new Error(
-      'Set VITE_FINNHUB_KEY in .env for local dev, or deploy to Vercel with FINNHUB_KEY.'
-    );
-  }
+// ── Yahoo Finance direct call (dev mode — no API key needed) ──
+async function fetchYahooDirect(ticker, resolution) {
+  const configMap = {
+    '60': { interval: '1h', range: '1mo' },
+    D: { interval: '1d', range: '2y' },
+    W: { interval: '1wk', range: '10y' },
+  };
+  const config = configMap[resolution] || configMap.D;
 
-  const now = Math.floor(Date.now() / 1000);
-  let intervalSeconds;
-  if (resolution === '240') intervalSeconds = 4 * 60 * 60;
-  else if (resolution === 'W') intervalSeconds = 7 * 24 * 60 * 60;
-  else if (resolution === 'D') intervalSeconds = 24 * 60 * 60;
-  else intervalSeconds = 60 * 60;
-
-  const from = now - count * intervalSeconds;
-  const params = new URLSearchParams({
-    symbol: ticker,
-    resolution,
-    from: String(from),
-    to: String(now),
-    token: API_KEY,
-  });
-
-  const res = await fetch(`https://finnhub.io/api/v1/stock/candle?${params}`);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${config.interval}&range=${config.range}`;
+  const res = await fetch(url);
 
   if (!res.ok) {
-    if (res.status === 403) {
-      throw new Error('API access denied. Check your Finnhub API key.');
-    }
-    if (res.status === 429) {
-      throw new Error('Rate limited. Wait a moment and try again.');
-    }
-    throw new Error(`Finnhub API error: ${res.status}`);
+    throw new Error(`Yahoo Finance error: ${res.status}`);
   }
 
-  const data = await res.json();
-  return parseNormalizedCandles(data);
+  const json = await res.json();
+  const result = json.chart?.result?.[0];
+  if (!result || !result.timestamp) {
+    throw new Error('No data available for this ticker');
+  }
+
+  const quote = result.indicators?.quote?.[0];
+  if (!quote) {
+    throw new Error('No data available for this ticker');
+  }
+
+  const indices = result.timestamp
+    .map((_, i) => i)
+    .filter((i) => quote.close[i] != null && quote.open[i] != null);
+
+  if (indices.length === 0) {
+    throw new Error('No data available for this ticker');
+  }
+
+  return indices.map((i) => ({
+    t: result.timestamp[i],
+    o: quote.open[i],
+    h: quote.high[i],
+    l: quote.low[i],
+    c: quote.close[i],
+    v: quote.volume[i] || 0,
+  }));
 }
 
 // ── Unified fetch ──
-export async function fetchCandles(ticker, resolution, count = 300) {
+export async function fetchCandles(ticker, resolution) {
   if (IS_PROD) {
-    return fetchViaProxy(ticker, resolution, count);
+    return fetchViaProxy(ticker, resolution);
   }
 
   if (isCrypto(ticker)) {
-    return fetchCryptoDirect(ticker, resolution, count);
+    return fetchCryptoDirect(ticker, resolution);
   }
-  return fetchFinnhubDirect(ticker, resolution, count);
+  return fetchYahooDirect(ticker, resolution);
 }
 
 export async function fetchDualTimeframe(ticker) {
   // Crypto: 4H + Daily via CryptoCompare
-  // Stocks: Daily + Weekly via Finnhub (free tier only supports D/W/M)
+  // Stocks: Daily + Weekly via Yahoo Finance
   const [shortRes, longRes] = isCrypto(ticker)
     ? ['240', 'D']
     : ['D', 'W'];
 
   const [shortTf, longTf] = await Promise.all([
-    fetchCandles(ticker, shortRes, 300),
-    fetchCandles(ticker, longRes, 300),
+    fetchCandles(ticker, shortRes),
+    fetchCandles(ticker, longRes),
   ]);
 
   return { '4H': shortTf, D: longTf };

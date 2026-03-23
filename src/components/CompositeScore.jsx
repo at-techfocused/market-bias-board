@@ -7,17 +7,17 @@ export default function CompositeScore({ composite, lastFetch }) {
   const glow = score <= 45 ? 'rgba(248,81,73,0.15)' : score >= 56 ? 'rgba(63,185,80,0.15)' : 'rgba(210,153,34,0.15)';
 
   const fetchTime = lastFetch
-    ? lastFetch.toISOString().slice(11, 16)
+    ? lastFetch.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '--:--';
 
   return (
-    <div className="px-4 py-3.5" style={{ borderBottom: '1px solid #1e2d3d', background: '#0d1117' }}>
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-[9px] font-bold tracking-[0.15em] uppercase" style={{ color: '#3d4a57' }}>
+    <div className="px-3 py-3" style={{ borderBottom: '1px solid #1e2d3d', background: '#0d1117' }}>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <span className="text-[8px] font-bold tracking-[0.12em] uppercase shrink-0" style={{ color: '#3d4a57' }}>
           Composite Signal
         </span>
-        <span className="text-[9px] tracking-[0.08em]" style={{ color: '#3d4a57' }}>
-          ON DEMAND · LAST FETCH {fetchTime}
+        <span className="text-[8px] tracking-[0.06em] text-right truncate" style={{ color: '#3d4a57' }}>
+          {fetchTime}
         </span>
       </div>
 

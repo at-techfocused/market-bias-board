@@ -8,15 +8,15 @@ function MiniCard({ label, value, sub, colorClass }) {
   const c = colorMap[colorClass] || '#cdd9e5';
 
   return (
-    <div className="rounded p-2.5 pb-2 text-center" style={{ background: '#111820', border: '1px solid #1e2d3d' }}>
-      <div className="text-[9px] tracking-[0.1em] uppercase mb-1.5" style={{ color: '#3d4a57' }}>
+    <div className="rounded p-2 pb-1.5 text-center overflow-hidden" style={{ background: '#111820', border: '1px solid #1e2d3d' }}>
+      <div className="text-[8px] tracking-[0.08em] uppercase mb-1 truncate" style={{ color: '#3d4a57' }}>
         {label}
       </div>
-      <div className="text-[16px] font-bold tracking-tight" style={{ color: c }}>
+      <div className="text-[14px] font-bold tracking-tight truncate" style={{ color: c }}>
         {value}
       </div>
       {sub && (
-        <div className="text-[9px] mt-0.5 tracking-wide" style={{ color: '#3d4a57' }}>
+        <div className="text-[8px] mt-0.5 tracking-wide truncate" style={{ color: '#3d4a57' }}>
           {sub}
         </div>
       )}

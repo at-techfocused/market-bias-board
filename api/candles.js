@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const { symbol, resolution, from, to, token } = req.query;
+  const { symbol, resolution, from, to } = req.query;
 
   if (!symbol || !resolution) {
     return res.status(400).json({ s: 'error', error: 'Missing required parameters' });
@@ -17,88 +17,119 @@ export default async function handler(req, res) {
 
   // ── Crypto: CryptoCompare (free, no geo-restrictions, no key needed) ──
   if (isCrypto) {
-    // Parse "BINANCE:BTCUSDT" → fsym=BTC, tsym=USDT
-    const pair = symbol.split(':').pop(); // "BTCUSDT"
-    const { fsym, tsym } = parseCryptoPair(pair);
-
-    // Map resolution to CryptoCompare endpoint
-    const endpointMap = {
-      '240': { endpoint: 'histohour', aggregate: 4 },
-      '60': { endpoint: 'histohour', aggregate: 1 },
-      D: { endpoint: 'histoday', aggregate: 1 },
-      W: { endpoint: 'histoday', aggregate: 7 },
-    };
-    const { endpoint, aggregate } = endpointMap[resolution] || endpointMap['240'];
-    const limit = 300;
-
-    try {
-      const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=${limit}&aggregate=${aggregate}`;
-      const response = await fetch(url);
-      const json = await response.json();
-
-      if (!response.ok || json.Response === 'Error') {
-        return res.status(502).json({
-          s: 'error',
-          error: json.Message || `CryptoCompare returned ${response.status}`,
-        });
-      }
-
-      const candles = json.Data?.Data;
-      if (!candles || candles.length === 0) {
-        return res.status(200).json({ s: 'no_data' });
-      }
-
-      // Filter out candles with zero volume (padding entries)
-      const valid = candles.filter((c) => c.volumefrom > 0 || c.volumeto > 0);
-      if (valid.length === 0) {
-        return res.status(200).json({ s: 'no_data' });
-      }
-
-      return res.status(200).json({
-        s: 'ok',
-        t: valid.map((c) => c.time),
-        o: valid.map((c) => c.open),
-        h: valid.map((c) => c.high),
-        l: valid.map((c) => c.low),
-        c: valid.map((c) => c.close),
-        v: valid.map((c) => c.volumefrom),
-      });
-    } catch (err) {
-      return res.status(502).json({ s: 'error', error: 'Failed to reach CryptoCompare: ' + err.message });
-    }
+    return fetchCrypto(req, res, symbol, resolution);
   }
 
-  // ── Stocks: Finnhub ──
-  const apiKey = (token || process.env.FINNHUB_KEY || process.env.VITE_FINNHUB_KEY || '').trim();
+  // ── Stocks: Yahoo Finance (free, no API key needed) ──
+  return fetchStock(req, res, symbol, resolution);
+}
 
-  if (!apiKey) {
-    return res.status(500).json({
-      s: 'error',
-      error: 'FINNHUB_KEY not configured. Add it in Vercel dashboard → Settings → Environment Variables, then redeploy.',
-    });
-  }
+async function fetchCrypto(req, res, symbol, resolution) {
+  const pair = symbol.split(':').pop();
+  const { fsym, tsym } = parseCryptoPair(pair);
 
-  const params = new URLSearchParams({ symbol, resolution, from, to, token: apiKey });
-  const url = `https://finnhub.io/api/v1/stock/candle?${params}`;
+  const endpointMap = {
+    '240': { endpoint: 'histohour', aggregate: 4 },
+    '60': { endpoint: 'histohour', aggregate: 1 },
+    D: { endpoint: 'histoday', aggregate: 1 },
+    W: { endpoint: 'histoday', aggregate: 7 },
+  };
+  const { endpoint, aggregate } = endpointMap[resolution] || endpointMap['240'];
 
   try {
+    const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=300&aggregate=${aggregate}`;
     const response = await fetch(url);
-    const data = await response.json();
+    const json = await response.json();
 
-    if (!response.ok) {
-      const hint = response.status === 403
-        ? 'Finnhub returned 403. Verify your FINNHUB_KEY is valid at https://finnhub.io/dashboard — and redeploy after updating.'
-        : (data.error || `Finnhub returned ${response.status}`);
-      return res.status(response.status).json({ s: 'error', error: hint });
+    if (!response.ok || json.Response === 'Error') {
+      return res.status(502).json({
+        s: 'error',
+        error: json.Message || `CryptoCompare returned ${response.status}`,
+      });
     }
 
-    return res.status(200).json(data);
+    const candles = json.Data?.Data;
+    if (!candles || candles.length === 0) {
+      return res.status(200).json({ s: 'no_data' });
+    }
+
+    const valid = candles.filter((c) => c.volumefrom > 0 || c.volumeto > 0);
+    if (valid.length === 0) {
+      return res.status(200).json({ s: 'no_data' });
+    }
+
+    return res.status(200).json({
+      s: 'ok',
+      t: valid.map((c) => c.time),
+      o: valid.map((c) => c.open),
+      h: valid.map((c) => c.high),
+      l: valid.map((c) => c.low),
+      c: valid.map((c) => c.close),
+      v: valid.map((c) => c.volumefrom),
+    });
   } catch (err) {
-    return res.status(502).json({ s: 'error', error: 'Failed to reach Finnhub: ' + err.message });
+    return res.status(502).json({ s: 'error', error: 'Failed to reach CryptoCompare: ' + err.message });
   }
 }
 
-// Parse crypto pair like "BTCUSDT" → { fsym: "BTC", tsym: "USDT" }
+async function fetchStock(req, res, symbol, resolution) {
+  // Map our resolution to Yahoo Finance interval + range
+  const configMap = {
+    '60': { interval: '1h', range: '1mo' },
+    D: { interval: '1d', range: '2y' },
+    W: { interval: '1wk', range: '10y' },
+  };
+  const config = configMap[resolution] || configMap.D;
+
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${config.interval}&range=${config.range}`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return res.status(502).json({
+        s: 'error',
+        error: `Yahoo Finance returned ${response.status}: ${text.slice(0, 200)}`,
+      });
+    }
+
+    const json = await response.json();
+    const result = json.chart?.result?.[0];
+
+    if (!result || !result.timestamp) {
+      return res.status(200).json({ s: 'no_data' });
+    }
+
+    const quote = result.indicators?.quote?.[0];
+    if (!quote) {
+      return res.status(200).json({ s: 'no_data' });
+    }
+
+    // Filter out null entries (market holidays etc)
+    const indices = result.timestamp
+      .map((_, i) => i)
+      .filter((i) => quote.close[i] != null && quote.open[i] != null);
+
+    if (indices.length === 0) {
+      return res.status(200).json({ s: 'no_data' });
+    }
+
+    return res.status(200).json({
+      s: 'ok',
+      t: indices.map((i) => result.timestamp[i]),
+      o: indices.map((i) => quote.open[i]),
+      h: indices.map((i) => quote.high[i]),
+      l: indices.map((i) => quote.low[i]),
+      c: indices.map((i) => quote.close[i]),
+      v: indices.map((i) => quote.volume[i] || 0),
+    });
+  } catch (err) {
+    return res.status(502).json({ s: 'error', error: 'Failed to reach Yahoo Finance: ' + err.message });
+  }
+}
+
 function parseCryptoPair(pair) {
   const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'GBP', 'BTC', 'ETH', 'BNB'];
   for (const quote of quoteAssets) {
@@ -106,6 +137,5 @@ function parseCryptoPair(pair) {
       return { fsym: pair.slice(0, -quote.length), tsym: quote };
     }
   }
-  // Fallback: assume last 3 chars are quote
   return { fsym: pair.slice(0, -3), tsym: pair.slice(-3) };
 }
