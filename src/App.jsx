@@ -67,7 +67,7 @@ export default function App() {
         <div className="flex flex-col" style={{ borderRight: '2px solid #1e2d3d' }}>
           <TradingViewWidget ticker={activeTicker} />
         </div>
-        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} />
+        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} />
       </div>
     </div>
   );
