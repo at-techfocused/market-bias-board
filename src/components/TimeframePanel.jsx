@@ -100,7 +100,7 @@ export default function TimeframePanel({ label, signals }) {
   const scoreBg = signals.score <= 40 ? 'rgba(248,81,73,0.08)' : signals.score >= 60 ? 'rgba(63,185,80,0.08)' : 'rgba(210,153,34,0.08)';
 
   return (
-    <div className="px-5 py-3">
+    <div className="px-4 py-3">
       <EMAStackInline ema={signals.ema} emaStack={signals.emaStack} close={signals.close} />
 
       <StatRow label="SMMA 99" tooltip={

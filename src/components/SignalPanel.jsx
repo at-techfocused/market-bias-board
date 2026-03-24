@@ -92,7 +92,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf
   };
 
   return (
-    <div className="flex flex-col overflow-y-auto h-full p-4 gap-2.5" style={{ background: '#0a0e14', scrollbarWidth: 'thin', scrollbarColor: '#1e2d3d transparent' }}>
+    <div className="flex flex-col overflow-y-auto h-full p-4 gap-2" style={{ background: '#0a0e14', scrollbarWidth: 'thin', scrollbarColor: '#1e2d3d transparent' }}>
 
       {/* Ticker header */}
       <div className="flex items-center justify-between px-1 pb-1">
@@ -122,7 +122,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf
         return (
           <div style={card} className="overflow-hidden">
             {/* Accent-top header (pattern 3 — data record) */}
-            <div className="flex items-center gap-2 px-5 py-3 text-[13px] font-bold tracking-[0.12em] uppercase"
+            <div className="flex items-center gap-2 px-4 py-2.5 text-[12px] font-bold tracking-[0.12em] uppercase"
               style={{ color: tfColor, borderBottom: '1px solid rgba(30,45,61,0.4)', background: '#0d1219' }}>
               <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: tfColor, boxShadow: `0 0 6px ${tfColor}` }} />
               {label}
@@ -138,7 +138,7 @@ export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf
 
       {/* Pattern Breakouts — accent-left pattern (5) */}
       <div style={card} className="overflow-hidden">
-        <div className={activeSignals?.pattern ? 'px-5 py-3.5' : 'flex items-center justify-between px-5 py-3'}>
+        <div className={activeSignals?.pattern ? 'px-4 py-3' : 'flex items-center justify-between px-4 py-2.5'}>
           <SectionLabel right={!activeSignals?.pattern ? 'None detected' : undefined}>Pattern Breakouts</SectionLabel>
           {activeSignals?.pattern && (
             <PatternCard pattern={activeSignals.pattern} timeframe={activeTf} atr={activeSignals.atr} close={activeSignals.close} />

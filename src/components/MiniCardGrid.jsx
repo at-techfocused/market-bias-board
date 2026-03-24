@@ -46,7 +46,7 @@ export default function MiniCardGrid({ signals, tfLabel }) {
   const tf = tfLabel || '4H';
 
   return (
-    <div className="px-5 py-4">
+    <div className="px-4 py-3">
       <div className="grid grid-cols-3 gap-2">
         <MiniCard label="RSI" value={signals.rsi ?? '--'} colorClass={rsiClass}
           sub={<span style={{ color: '#4d5768' }}>{signals.rsiZone?.toLowerCase()}</span>}
