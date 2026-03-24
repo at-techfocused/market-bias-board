@@ -33,28 +33,13 @@ export default function MetricsRow({ signals, activeTf }) {
   if (!active) return null;
 
   const cards = [
-    {
-      label: 'SCORE',
-      value: active.score,
-      color: getSignalColor(active.score),
-      sub: `/ 100 · ${TF_DISPLAY[activeTf]}`,
-    },
-    {
-      label: 'ADX',
-      value: active.adx ?? '--',
-      color: 'var(--text-body)',
-      sub: adxLabel(active.adx),
-    },
-    {
-      label: 'VOL',
-      value: active.volRatio != null ? `${active.volRatio}x` : '--',
-      color: volColor(active.volRatio),
-      sub: volLabel(active.volRatio),
-    },
+    { label: 'SCORE', value: active.score, color: getSignalColor(active.score), sub: `/ 100 · ${TF_DISPLAY[activeTf]}` },
+    { label: 'ADX', value: active.adx ?? '--', color: 'var(--text-body)', sub: adxLabel(active.adx) },
+    { label: 'VOL', value: active.volRatio != null ? `${active.volRatio}x` : '--', color: volColor(active.volRatio), sub: volLabel(active.volRatio) },
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+    <div className="grid grid-cols-3 gap-2" style={{ padding: '14px 16px' }}>
       {cards.map((card) => (
         <div key={card.label} className="rounded-[7px] py-3 px-3 text-center"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
@@ -64,9 +49,7 @@ export default function MetricsRow({ signals, activeTf }) {
           <div style={{ fontSize: 20, fontWeight: 700, color: card.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
             {card.value}
           </div>
-          <div style={{ fontSize: 9, color: 'var(--text-body)', marginTop: 4 }}>
-            {card.sub}
-          </div>
+          <div style={{ fontSize: 9, color: 'var(--text-body)', marginTop: 4 }}>{card.sub}</div>
         </div>
       ))}
     </div>

@@ -10,13 +10,11 @@ export default function ConflictBadge({ signals }) {
   const dSide = dScore >= 50 ? 'bullish' : 'bearish';
 
   return (
-    <div className="mx-4 mb-3 overflow-hidden" style={{ background: '#140f02', borderRadius: '0 6px 6px 0', borderLeft: '2px solid var(--amber)' }}>
-      <div className="flex items-start gap-2 px-3 py-2.5">
-        <span style={{ color: 'var(--amber)', fontSize: 12, lineHeight: 1 }}>!</span>
-        <span style={{ fontSize: 10, color: 'var(--text-body)', lineHeight: 1.5 }}>
-          Conflict — 4H {h4Side}, Daily {dSide}. Signal capped at bias level. Await resolution before sizing in.
-        </span>
-      </div>
+    <div className="flex items-start gap-2" style={{ padding: '14px 16px' }}>
+      <span style={{ color: 'var(--amber)', fontSize: 12, lineHeight: 1 }}>!</span>
+      <span style={{ fontSize: 10, color: 'var(--text-body)', lineHeight: 1.5 }}>
+        Conflict — 4H {h4Side}, Daily {dSide}. Signal capped at bias level. Await resolution before sizing in.
+      </span>
     </div>
   );
 }

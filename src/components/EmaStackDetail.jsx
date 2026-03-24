@@ -1,16 +1,5 @@
 import { TF_DISPLAY, fmtPrice } from '../utils/format';
 
-function SectionLabel({ children, right }) {
-  return (
-    <div className="flex items-center justify-between px-4 pt-4 pb-2">
-      <span style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-        {children}
-      </span>
-      {right}
-    </div>
-  );
-}
-
 function StackBadge({ value }) {
   const color = value === 'BULL' ? 'var(--green)' : value === 'BEAR' ? 'var(--red)' : 'var(--amber)';
   return (
@@ -38,11 +27,14 @@ export default function EmaStackDetail({ signals, activeTf }) {
   ];
 
   return (
-    <div>
-      <SectionLabel right={<StackBadge value={active.emaStack} />}>
-        EMA STACK DETAIL · {TF_DISPLAY[activeTf]}
-      </SectionLabel>
-      <div className="px-4 pb-4 flex flex-col gap-2">
+    <div style={{ padding: '14px 16px' }}>
+      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+        <span style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+          EMA STACK DETAIL · {TF_DISPLAY[activeTf]}
+        </span>
+        <StackBadge value={active.emaStack} />
+      </div>
+      <div className="flex flex-col gap-2">
         {rows.map((row) => {
           const above = row.value != null && close > row.value;
           const fillColor = above ? 'var(--green)' : 'var(--red)';

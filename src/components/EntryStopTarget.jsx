@@ -1,4 +1,4 @@
-import { fmtPrice, TF_DISPLAY } from '../utils/format';
+import { fmtPrice } from '../utils/format';
 
 export default function EntryStopTarget({ signals, activeTf }) {
   const active = signals?.[activeTf];
@@ -15,34 +15,16 @@ export default function EntryStopTarget({ signals, activeTf }) {
   const rr = stopPct != null && stopPct > 0 ? (targetPct / stopPct) : null;
 
   const cols = [
-    {
-      label: 'ENTRY',
-      value: entry,
-      color: 'var(--text-primary)',
-      accent: 'var(--border)',
-      sub: 'market',
-    },
-    {
-      label: 'STOP',
-      value: stop,
-      color: 'var(--red)',
-      accent: 'var(--red)',
-      sub: stopPct != null ? `${stopPct.toFixed(1)}% · 1.5× ATR` : '--',
-    },
-    {
-      label: 'TARGET',
-      value: target,
-      color: 'var(--green)',
-      accent: 'var(--green)',
-      sub: targetPct != null ? `${targetPct.toFixed(1)}% · R:R ${rr != null ? rr.toFixed(1) : '--'}:1` : '--',
-    },
+    { label: 'ENTRY', value: entry, color: 'var(--text-primary)', accent: 'var(--border)', sub: 'market' },
+    { label: 'STOP', value: stop, color: 'var(--red)', accent: 'var(--red)', sub: stopPct != null ? `${stopPct.toFixed(1)}% · 1.5× ATR` : '--' },
+    { label: 'TARGET', value: target, color: 'var(--green)', accent: 'var(--green)', sub: targetPct != null ? `${targetPct.toFixed(1)}% · R:R ${rr != null ? rr.toFixed(1) : '--'}:1` : '--' },
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4 px-4 pb-4">
+    <div className="grid grid-cols-3 gap-4" style={{ padding: '14px 16px' }}>
       {cols.map((col) => (
         <div key={col.label}>
-          <div className="h-[2px] mb-2.5 rounded-full" style={{ background: col.accent }} />
+          <div className="h-[2px] rounded-full" style={{ background: col.accent, marginBottom: 10 }} />
           <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
             {col.label}
           </div>

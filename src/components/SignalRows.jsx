@@ -6,16 +6,6 @@ function getSignalColor(type) {
   return 'var(--amber)';
 }
 
-function SectionLabel({ children }) {
-  return (
-    <div className="px-4 pt-4 pb-2">
-      <span style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-        {children}
-      </span>
-    </div>
-  );
-}
-
 export default function SignalRows({ signals, activeTf }) {
   const active = signals?.[activeTf];
   if (!active) return null;
@@ -54,9 +44,11 @@ export default function SignalRows({ signals, activeTf }) {
   ];
 
   return (
-    <div>
-      <SectionLabel>SIGNALS · {TF_DISPLAY[activeTf]}</SectionLabel>
-      <div className="mx-4 mb-4 rounded-[7px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+    <div style={{ padding: '14px 16px' }}>
+      <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+        SIGNALS · {TF_DISPLAY[activeTf]}
+      </div>
+      <div className="rounded-[7px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         {rows.map((row, i) => (
           <div key={row.name} className="flex items-center justify-between px-3 py-2.5"
             style={i < rows.length - 1 ? { borderBottom: '1px solid var(--border-inner)' } : undefined}>

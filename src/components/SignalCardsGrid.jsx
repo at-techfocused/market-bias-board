@@ -47,13 +47,11 @@ export default function SignalCardsGrid({ signals, activeTf }) {
   ];
 
   return (
-    <div>
-      <div className="px-4 pt-4 pb-2">
-        <span style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-          SIGNAL CARDS · {TF_DISPLAY[activeTf]}
-        </span>
+    <div style={{ padding: '14px 16px' }}>
+      <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+        SIGNAL CARDS · {TF_DISPLAY[activeTf]}
       </div>
-      <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+      <div className="grid grid-cols-3 gap-2">
         {cards.map((card) => {
           const colorVal = card.raw !== undefined ? card.raw : card.value;
           const color = valColor(card.label, typeof colorVal === 'string' ? parseFloat(colorVal) || null : colorVal);

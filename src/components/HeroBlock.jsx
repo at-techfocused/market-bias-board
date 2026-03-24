@@ -56,9 +56,9 @@ export default function HeroBlock({ signals, activeTf }) {
   }
 
   return (
-    <div className="px-4 pt-4 pb-3">
+    <div style={{ padding: '14px 16px' }}>
       {/* Eyebrow */}
-      <div className="flex items-center gap-1.5 mb-2">
+      <div className="flex items-center gap-1.5" style={{ marginBottom: 8 }}>
         <div className="w-[5px] h-[5px] rounded-full" style={{ background: color }} />
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>
           {label} · {TF_DISPLAY[activeTf]}
@@ -74,12 +74,12 @@ export default function HeroBlock({ signals, activeTf }) {
       </div>
 
       {/* Description */}
-      <div className="mt-2" style={{ fontSize: 11, color: 'var(--text-body)', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-body)', lineHeight: 1.5, marginTop: 8 }}>
         {desc}
       </div>
 
       {/* Progress bar + agreement */}
-      <div className="flex items-center gap-3 mt-3">
+      <div className="flex items-center gap-3" style={{ marginTop: 12 }}>
         <div className="flex-1 h-[2px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
