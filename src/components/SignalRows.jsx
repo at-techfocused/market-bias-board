@@ -47,7 +47,7 @@ export default function SignalRows({ signals, activeTf }) {
 
   return (
     <div style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
         SIGNALS · {TF_DISPLAY[activeTf]}
       </div>
       <div className="rounded-[7px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
@@ -58,12 +58,12 @@ export default function SignalRows({ signals, activeTf }) {
             <div className="flex items-center justify-between px-3 py-2.5"
               style={i < rows.length - 1 ? { borderBottom: '1px solid var(--border-inner)' } : undefined}>
               <div>
-                <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.07em' }}>{row.name}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6, marginTop: 1 }}>{row.detail}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-body)', letterSpacing: '0.07em' }}>{row.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.6, marginTop: 1 }}>{row.detail}</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-[6px] h-[6px] rounded-full" style={{ background: row.color }} />
-                <span style={{ fontSize: 10, fontWeight: 600, color: row.color }}>{row.value}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: row.color }}>{row.value}</span>
               </div>
             </div>
           </Tooltip>

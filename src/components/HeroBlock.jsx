@@ -106,7 +106,7 @@ export default function HeroBlock({ signals, activeTf }) {
       {/* Eyebrow */}
       <div className="flex items-center gap-1.5" style={{ marginBottom: 8 }}>
         <div className="w-[5px] h-[5px] rounded-full" style={{ background: color }} />
-        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>
           {label} · {TF_DISPLAY[activeTf]}
         </span>
       </div>
@@ -114,25 +114,25 @@ export default function HeroBlock({ signals, activeTf }) {
       {/* Score — clickable for breakdown */}
       <Tooltip content={scoreTooltip}>
         <div className="flex items-baseline gap-1.5">
-          <span style={{ fontSize: 52, fontFamily: "'Georgia', serif", fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1 }}>
+          <span style={{ fontSize: 56, fontFamily: "'Georgia', serif", fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1 }}>
             {score}
           </span>
-          <span style={{ fontSize: 20, color: 'var(--text-body)' }}>/100</span>
+          <span style={{ fontSize: 24, color: 'var(--text-body)' }}>/100</span>
         </div>
       </Tooltip>
 
       {/* Description */}
-      <div style={{ fontSize: 11, color: 'var(--text-body)', lineHeight: 1.5, marginTop: 8 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5, marginTop: 8 }}>
         {desc}
       </div>
 
       {/* Progress bar + agreement */}
       <div className="flex items-center gap-3" style={{ marginTop: 12 }}>
-        <div className="flex-1 h-[2px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+        <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
         <Tooltip content={agreementTooltip}>
-          <span style={{ fontSize: 9, color: 'var(--text-body)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-body)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
             {agreement}% TF agreement
           </span>
         </Tooltip>

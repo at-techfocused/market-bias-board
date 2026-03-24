@@ -52,7 +52,7 @@ export default function SignalCardsGrid({ signals, activeTf }) {
 
   return (
     <div style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
         SIGNAL CARDS · {TF_DISPLAY[activeTf]}
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -63,13 +63,13 @@ export default function SignalCardsGrid({ signals, activeTf }) {
             <Tooltip key={card.label} content={
               <div><div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{card.label}</div>{card.tip}</div>
             }>
-              <div className="rounded-[7px] py-3 px-3 text-center"
+              <div className="rounded-[7px] py-3.5 px-3 text-center"
                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.07em', marginBottom: 4 }}>{card.label}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.07em', marginBottom: 4 }}>{card.label}</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                   {card.value}
                 </div>
-                <div style={{ fontSize: 9, color: 'var(--text-body)', marginTop: 4 }}>{card.sub}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 4 }}>{card.sub}</div>
               </div>
             </Tooltip>
           );
