@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function Tooltip({ children, content }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const triggerRef = useRef(null);
+  const tooltipRef = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      if (ref.current && !ref.current.contains(e.target)) {
+      if (
+        triggerRef.current && !triggerRef.current.contains(e.target) &&
+        tooltipRef.current && !tooltipRef.current.contains(e.target)
+      ) {
         setOpen(false);
       }
     }
@@ -15,29 +21,43 @@ export default function Tooltip({ children, content }) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
+  useEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [open]);
+
   return (
-    <div ref={ref} className="relative" style={{ display: 'inline-block', width: '100%' }}>
+    <div ref={triggerRef} style={{ display: 'inline-block', width: '100%' }}>
       <div onClick={() => setOpen((v) => !v)} style={{ cursor: 'pointer' }}>
         {children}
       </div>
-      {open && (
+      {open && createPortal(
         <div
-          className="absolute z-50 px-3 py-2.5 rounded shadow-lg text-[11px] leading-relaxed"
+          ref={tooltipRef}
+          className="px-3 py-2.5 rounded shadow-lg text-[11px] leading-relaxed"
           style={{
+            position: 'fixed',
+            zIndex: 99999,
             background: '#1a2332',
             border: '1px solid #2d4a5e',
             color: '#cdd9e5',
-            left: 0,
-            right: 0,
-            top: '100%',
-            marginTop: 4,
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
             minWidth: 180,
-            maxWidth: 320,
+            maxWidth: 360,
             boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            fontFamily: "'IBM Plex Mono', monospace",
           }}
         >
           {content}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

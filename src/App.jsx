@@ -71,7 +71,7 @@ export default function App() {
         signals={signals}
       />
       <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 700px' }}>
-        <div className="flex flex-col" style={{ borderRight: '2px solid #1e2d3d' }}>
+        <div className="flex flex-col p-3" style={{ borderRight: '2px solid #1e2d3d' }}>
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
         <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />

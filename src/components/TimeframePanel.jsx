@@ -47,6 +47,14 @@ function fmtPrice(val) {
   return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 }
 
+// EMA period label colors: 20=red, 50=orange, 100=teal, 200=blue
+const EMA_PERIOD_COLORS = {
+  '20': '#f85149',
+  '50': '#d29922',
+  '100': '#2dd4bf',
+  '200': '#58a6ff',
+};
+
 // EMA Stack with inline dollar values — always visible, color-coded
 function EMAStackInline({ ema, emaStack, close }) {
   const stackColor = emaStack === 'BULL' ? '#3fb950' : emaStack === 'BEAR' ? '#f85149' : '#d29922';
@@ -69,7 +77,7 @@ function EMAStackInline({ ema, emaStack, close }) {
           const pct = ((close - value) / value * 100).toFixed(2);
           return (
             <div key={period} style={{ color: above ? '#3fb950' : '#f85149' }}>
-              EMA {period}: ${fmtPrice(value)} ({above ? '+' : ''}{pct}%)
+              <span style={{ color: EMA_PERIOD_COLORS[period] }}>EMA {period}</span>: ${fmtPrice(value)} ({above ? '+' : ''}{pct}%)
             </div>
           );
         })}
@@ -92,10 +100,14 @@ function EMAStackInline({ ema, emaStack, close }) {
           {pairs.map(({ period, value }) => {
             if (value == null) return null;
             const above = close > value;
-            const color = above ? '#3fb950' : '#f85149';
+            const valueColor = above ? '#3fb950' : '#f85149';
+            const periodColor = EMA_PERIOD_COLORS[period];
             return (
-              <span key={period} className="text-[11px] tabular-nums whitespace-nowrap" style={{ color, fontFamily: "'IBM Plex Mono', monospace" }}>
-                {above ? '+' : '\u2212'}EMA{period} ${fmtPrice(value)}
+              <span key={period} className="text-[11px] tabular-nums whitespace-nowrap" style={{ fontFamily: "'IBM Plex Mono', monospace" }}>
+                <span style={{ color: valueColor }}>{above ? '+' : '\u2212'}</span>
+                <span style={{ color: periodColor }}>EMA{period}</span>
+                {' '}
+                <span style={{ color: valueColor }}>${fmtPrice(value)}</span>
               </span>
             );
           })}
