@@ -1,24 +1,20 @@
 export default function ConflictBadge({ signals }) {
-  if (!signals?.composite?.conflict) return null;
+  const h4Score = signals?.['4H']?.score;
+  const dScore = signals?.D?.score;
+  const hasConflict = h4Score != null && dScore != null &&
+    ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
 
-  const h4 = signals['4H'];
-  const d = signals.D;
-  const h4Side = h4?.score >= 50 ? 'bullish' : 'bearish';
-  const dSide = d?.score >= 50 ? 'bullish' : 'bearish';
+  if (!hasConflict) return null;
+
+  const h4Side = h4Score >= 50 ? 'bullish' : 'bearish';
+  const dSide = dScore >= 50 ? 'bullish' : 'bearish';
 
   return (
-    <div
-      className="px-4 py-2.5 rounded-lg flex items-center gap-2.5 text-[12px] tracking-wide leading-relaxed"
-      style={{
-        background: '#3d2e0a',
-        border: '1px solid #d29922',
-        color: '#d29922',
-      }}
-    >
-      <span className="text-[13px]">⚠</span>
-      <div>
-        <strong>Timeframe Conflict</strong> — Daily {dSide}, 4H {h4Side}. Await resolution before sizing in.
-      </div>
+    <div className="flex items-start gap-2" style={{ padding: '14px 16px' }}>
+      <span style={{ color: 'var(--amber)', fontSize: 12, lineHeight: 1 }}>!</span>
+      <span style={{ fontSize: 10, color: 'var(--text-body)', lineHeight: 1.5 }}>
+        Conflict — 4H {h4Side}, Daily {dSide}. Signal capped at bias level. Await resolution before sizing in.
+      </span>
     </div>
   );
 }

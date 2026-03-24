@@ -1,0 +1,17 @@
+:root {
+  --bg-deep:      #0a1218;
+  --bg-base:      #0f1923;
+  --bg-card:      #0a1218;
+  --border:       #1c2e3d;
+  --border-inner: #111e2a;
+  --text-primary: #e8f0f8;
+  --text-body:    #c8d8e8;
+  --green:        #5bc98a;
+  --red:          #e05555;
+  --amber:        #c87c00;
+  --ema-20:       #e05555;
+  --ema-50:       #e88c2a;
+  --ema-100:      #2ab8b8;
+  --ema-200:      #4a90d9;
+  --smma-99:      #c8d8e8;
+}

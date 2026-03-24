@@ -103,10 +103,33 @@ async function fetchCryptoDirect(ticker, resolution) {
   }));
 }
 
+// ── Aggregate 1H candles into 4H candles ──
+function aggregateToFourHour(candles) {
+  if (!candles || candles.length === 0) return [];
+  const buckets = new Map();
+  for (const c of candles) {
+    // Group into 4-hour buckets
+    const key = Math.floor(c.t / (4 * 3600)) * (4 * 3600);
+    if (!buckets.has(key)) {
+      buckets.set(key, { t: key, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v });
+    } else {
+      const b = buckets.get(key);
+      b.h = Math.max(b.h, c.h);
+      b.l = Math.min(b.l, c.l);
+      b.c = c.c;
+      b.v += c.v;
+    }
+  }
+  return Array.from(buckets.values()).sort((a, b) => a.t - b.t);
+}
+
 // ── Yahoo Finance direct call (dev mode — no API key needed) ──
 async function fetchYahooDirect(ticker, resolution) {
+  // For 4H (240): fetch 1H data and aggregate
+  const needsAggregation = resolution === '240';
   const configMap = {
-    '60': { interval: '1h', range: '1mo' },
+    '60': { interval: '1h', range: '6mo' },
+    '240': { interval: '1h', range: '2y' },
     D: { interval: '1d', range: '2y' },
     W: { interval: '1wk', range: '10y' },
   };
@@ -138,7 +161,7 @@ async function fetchYahooDirect(ticker, resolution) {
     throw new Error('No data available for this ticker');
   }
 
-  return indices.map((i) => ({
+  const candles = indices.map((i) => ({
     t: result.timestamp[i],
     o: quote.open[i],
     h: quote.high[i],
@@ -146,10 +169,12 @@ async function fetchYahooDirect(ticker, resolution) {
     c: quote.close[i],
     v: quote.volume[i] || 0,
   }));
+
+  return needsAggregation ? aggregateToFourHour(candles) : candles;
 }
 
 // ── Unified fetch ──
-export async function fetchCandles(ticker, resolution) {
+async function fetchCandles(ticker, resolution) {
   if (IS_PROD) {
     return fetchViaProxy(ticker, resolution);
   }
@@ -161,22 +186,16 @@ export async function fetchCandles(ticker, resolution) {
 }
 
 export async function fetchTripleTimeframe(ticker) {
-  // Crypto: 1H + 4H + Daily via CryptoCompare
-  // Stocks: 1H + Daily + Weekly via Yahoo Finance
-  const resolutions = isCrypto(ticker)
-    ? ['60', '240', 'D']
-    : ['60', 'D', 'W'];
+  // All assets: 1H + 4H + Daily (stocks aggregate 1H→4H)
+  const resolutions = ['60', '240', 'D'];
 
-  const [h1Tf, shortTf, longTf] = await Promise.all([
+  const results = await Promise.allSettled([
     fetchCandles(ticker, resolutions[0]),
     fetchCandles(ticker, resolutions[1]),
     fetchCandles(ticker, resolutions[2]),
   ]);
 
-  return { '1H': h1Tf, '4H': shortTf, D: longTf };
-}
+  const extract = (r) => (r.status === 'fulfilled' ? r.value : null);
 
-// Keep backward compat
-export async function fetchDualTimeframe(ticker) {
-  return fetchTripleTimeframe(ticker);
+  return { '1H': extract(results[0]), '4H': extract(results[1]), D: extract(results[2]) };
 }

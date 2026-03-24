@@ -6,12 +6,7 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
   const [time, setTime] = useState('');
 
   useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      setTime(
-        now.toISOString().slice(11, 19) + ' UTC'
-      );
-    };
+    const update = () => setTime(new Date().toISOString().slice(11, 19) + ' UTC');
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
@@ -29,38 +24,36 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
   const isInWatchlist = watchlist.includes(activeTicker);
 
   return (
-    <div className="flex items-center gap-4 px-5 py-2.5 border-b sticky top-0 z-50"
-      style={{ background: '#0d1117', borderColor: '#1e2d3d' }}>
-      {/* Logo */}
+    <div className="flex items-center gap-4 px-5 py-2.5 sticky top-0 z-50"
+      style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
       <div className="flex items-center gap-2 shrink-0">
         <div className="w-[7px] h-[7px] rounded-full animate-pulse"
-          style={{ background: '#00d4ff', boxShadow: '0 0 8px #00d4ff' }} />
-        <span className="text-[13px] font-bold tracking-[0.15em] uppercase"
-          style={{ color: '#00d4ff' }}>BIASBOARD</span>
+          style={{ background: 'var(--green)', boxShadow: '0 0 8px var(--green)' }} />
+        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+          BIASBOARD
+        </span>
       </div>
 
-      {/* Search */}
       <form onSubmit={handleSubmit} className="relative w-[200px] shrink-0">
-        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px]"
-          style={{ color: '#636e7b' }}>⌕</span>
         <input
           type="text"
           placeholder="Search ticker..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full text-[12px] py-[7px] pl-8 pr-3 rounded outline-none transition-colors"
           style={{
-            background: '#111820',
-            border: '1px solid #1e2d3d',
-            color: '#cdd9e5',
-            fontFamily: "'IBM Plex Mono', monospace",
+            width: '100%',
+            fontSize: 12,
+            padding: '7px 12px',
+            borderRadius: 4,
+            outline: 'none',
+            background: 'var(--bg-base)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            fontFamily: "'Inter', system-ui, sans-serif",
           }}
-          onFocus={(e) => (e.target.style.borderColor = '#00d4ff')}
-          onBlur={(e) => (e.target.style.borderColor = '#1e2d3d')}
         />
       </form>
 
-      {/* Watchlist */}
       <div className="flex gap-1.5 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {watchlist.map((ticker) => (
           <WatchlistChip
@@ -73,25 +66,18 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
           />
         ))}
         {!isInWatchlist && (
-          <button
-            onClick={() => onAddToWatchlist(activeTicker)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-semibold tracking-wide cursor-pointer whitespace-nowrap transition-all"
+          <button onClick={() => onAddToWatchlist(activeTicker)}
             style={{
-              background: '#111820',
-              border: '1px solid #1e2d3d',
-              color: '#636e7b',
-            }}
-          >
+              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap',
+              background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-body)',
+            }}>
             + ADD
           </button>
         )}
       </div>
 
-      {/* Timestamp */}
       <div className="ml-auto shrink-0">
-        <span className="text-[10px] tracking-[0.08em]" style={{ color: '#636e7b' }}>
-          {time}
-        </span>
+        <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
       </div>
     </div>
   );

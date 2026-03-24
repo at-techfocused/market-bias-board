@@ -18,10 +18,15 @@ export function useFinnhub() {
 
     try {
       const result = await fetchTripleTimeframe(ticker);
+      const makeTf = (candles) => ({
+        candles,
+        loading: false,
+        error: candles ? null : 'No data available',
+      });
       setData({
-        '1H': { candles: result['1H'], loading: false, error: null },
-        '4H': { candles: result['4H'], loading: false, error: null },
-        D: { candles: result.D, loading: false, error: null },
+        '1H': makeTf(result['1H']),
+        '4H': makeTf(result['4H']),
+        D: makeTf(result.D),
       });
       setLastFetch(new Date());
     } catch (err) {

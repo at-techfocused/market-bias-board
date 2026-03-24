@@ -72,10 +72,30 @@ async function fetchCrypto(req, res, symbol, resolution) {
   }
 }
 
+// Aggregate 1H candles into 4H candles
+function aggregateToFourHour(candles) {
+  const buckets = new Map();
+  for (const c of candles) {
+    const key = Math.floor(c.t / (4 * 3600)) * (4 * 3600);
+    if (!buckets.has(key)) {
+      buckets.set(key, { t: key, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v });
+    } else {
+      const b = buckets.get(key);
+      b.h = Math.max(b.h, c.h);
+      b.l = Math.min(b.l, c.l);
+      b.c = c.c;
+      b.v += c.v;
+    }
+  }
+  return Array.from(buckets.values()).sort((a, b) => a.t - b.t);
+}
+
 async function fetchStock(req, res, symbol, resolution) {
-  // Map our resolution to Yahoo Finance interval + range
+  // For 4H (240): fetch 1H data and aggregate
+  const needsAggregation = resolution === '240';
   const configMap = {
-    '60': { interval: '1h', range: '1mo' },
+    '60': { interval: '1h', range: '6mo' },
+    '240': { interval: '1h', range: '2y' },
     D: { interval: '1d', range: '2y' },
     W: { interval: '1wk', range: '10y' },
   };
@@ -116,14 +136,27 @@ async function fetchStock(req, res, symbol, resolution) {
       return res.status(200).json({ s: 'no_data' });
     }
 
+    let candles = indices.map((i) => ({
+      t: result.timestamp[i],
+      o: quote.open[i],
+      h: quote.high[i],
+      l: quote.low[i],
+      c: quote.close[i],
+      v: quote.volume[i] || 0,
+    }));
+
+    if (needsAggregation) {
+      candles = aggregateToFourHour(candles);
+    }
+
     return res.status(200).json({
       s: 'ok',
-      t: indices.map((i) => result.timestamp[i]),
-      o: indices.map((i) => quote.open[i]),
-      h: indices.map((i) => quote.high[i]),
-      l: indices.map((i) => quote.low[i]),
-      c: indices.map((i) => quote.close[i]),
-      v: indices.map((i) => quote.volume[i] || 0),
+      t: candles.map((c) => c.t),
+      o: candles.map((c) => c.o),
+      h: candles.map((c) => c.h),
+      l: candles.map((c) => c.l),
+      c: candles.map((c) => c.c),
+      v: candles.map((c) => c.v),
     });
   } catch (err) {
     return res.status(502).json({ s: 'error', error: 'Failed to reach Yahoo Finance: ' + err.message });

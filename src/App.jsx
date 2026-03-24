@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import TradingViewWidget from './components/TradingViewWidget';
-import SignalPanel from './components/SignalPanel';
+import Panel from './components/Panel';
 import { useFinnhub } from './hooks/useFinnhub';
 import { useIndicators } from './hooks/useIndicators';
 
@@ -27,8 +27,14 @@ export default function App() {
   });
   const [watchlist, setWatchlist] = useState(loadWatchlist);
 
+  const [activeTf, setActiveTf] = useState('4H');
   const { data, lastFetch, loadTicker } = useFinnhub();
   const signals = useIndicators(data);
+
+  const chartInterval = useMemo(() => {
+    const map = { '1H': '60', '4H': '240', D: 'D' };
+    return map[activeTf] || '240';
+  }, [activeTf]);
 
   useEffect(() => {
     loadTicker(activeTicker);
@@ -54,7 +60,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: '#080c10', fontFamily: "'IBM Plex Mono', monospace" }}>
+    <div className="h-screen flex flex-col" style={{ background: '#060d13', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopBar
         activeTicker={activeTicker}
         watchlist={watchlist}
@@ -63,11 +69,16 @@ export default function App() {
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
       />
-      <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 700px' }}>
-        <div className="flex flex-col" style={{ borderRight: '2px solid #1e2d3d' }}>
-          <TradingViewWidget ticker={activeTicker} />
+      <div className="flex-1 flex" style={{ padding: 12, gap: 12, minHeight: 0 }}>
+        {/* Chart card */}
+        <div className="flex-1 flex flex-col overflow-hidden"
+          style={{ background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
-        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} />
+        {/* Panel */}
+        <div style={{ width: 420, minWidth: 420, flexShrink: 0 }}>
+          <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
+        </div>
       </div>
     </div>
   );
