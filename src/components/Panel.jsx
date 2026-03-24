@@ -3,7 +3,7 @@ import TimeframeTabs from './TimeframeTabs';
 import HeroBlock from './HeroBlock';
 import ConflictBadge from './ConflictBadge';
 import EntryStopTarget from './EntryStopTarget';
-import MetricsRow from './MetricsRow';
+
 import SignalRows from './SignalRows';
 import EmaStackDetail from './EmaStackDetail';
 import SmmaCard from './SmmaCard';
@@ -124,12 +124,6 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
           <Card>
             <CollapsibleSection title={`ENTRY / STOP / TARGET`}>
               <EntryStopTarget signals={signals} activeTf={activeTf} />
-            </CollapsibleSection>
-          </Card>
-
-          <Card>
-            <CollapsibleSection title={`METRICS · ${TF_DISPLAY[activeTf]}`}>
-              <MetricsRow signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
           </Card>
 

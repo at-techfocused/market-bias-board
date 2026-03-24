@@ -36,6 +36,27 @@ function getSignalColor(score) {
   return 'var(--amber)';
 }
 
+function adxLabel(adx) {
+  if (adx == null) return '--';
+  if (adx < 20) return 'weak trend';
+  if (adx < 40) return 'moderate trend';
+  return 'strong trend';
+}
+
+function volLabel(ratio) {
+  if (ratio == null) return '--';
+  if (ratio < 0.8) return 'low conv.';
+  if (ratio < 1.2) return 'average';
+  return 'confirmed';
+}
+
+function volColor(ratio) {
+  if (ratio == null) return 'var(--text-body)';
+  if (ratio >= 1.5) return 'var(--green)';
+  if (ratio < 0.5) return 'var(--red)';
+  return 'var(--amber)';
+}
+
 function getBreakdown(signals) {
   if (!signals) return [];
   return [
@@ -101,25 +122,51 @@ export default function HeroBlock({ signals, activeTf }) {
     </div>
   );
 
+  const metrics = [
+    {
+      label: 'SCORE', value: score, color: getSignalColor(score),
+      sub: `/ 100 · ${TF_DISPLAY[activeTf]}`,
+      tip: scoreTooltip,
+    },
+    {
+      label: 'ADX', value: active.adx ?? '--', color: 'var(--text-body)',
+      sub: adxLabel(active.adx),
+      tip: <div><div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Average Directional Index</div>Measures trend strength regardless of direction. Below 20 = weak/ranging, 20–40 = moderate trend, above 40 = strong trend.</div>,
+    },
+    {
+      label: 'VOL', value: active.volRatio != null ? `${active.volRatio}x` : '--',
+      color: volColor(active.volRatio), sub: volLabel(active.volRatio),
+      tip: <div><div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Volume Ratio</div>Current volume vs 20-period average. Below 0.8x = low conviction, 0.8–1.2x = average, above 1.5x = high conviction.</div>,
+    },
+  ];
+
   return (
     <div style={{ padding: '4px 16px 14px' }}>
-      {/* Score — clickable for breakdown */}
-      <Tooltip content={scoreTooltip}>
-        <div className="flex items-baseline gap-1.5">
-          <span style={{ fontSize: 56, fontFamily: "'Georgia', serif", fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1 }}>
-            {score}
-          </span>
-          <span style={{ fontSize: 24, color: 'var(--text-body)' }}>/100</span>
-        </div>
-      </Tooltip>
+      {/* Metrics row: SCORE, ADX, VOL */}
+      <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 10 }}>
+        {metrics.map((m) => (
+          <Tooltip key={m.label} content={m.tip}>
+            <div className="rounded-[7px] py-3 px-3 text-center"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {m.label}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: m.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                {m.value}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 4 }}>{m.sub}</div>
+            </div>
+          </Tooltip>
+        ))}
+      </div>
 
       {/* Description */}
-      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5, marginTop: 8 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5 }}>
         {desc}
       </div>
 
       {/* Progress bar + agreement */}
-      <div className="flex items-center gap-3" style={{ marginTop: 12 }}>
+      <div className="flex items-center gap-3" style={{ marginTop: 10 }}>
         <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
@@ -129,7 +176,6 @@ export default function HeroBlock({ signals, activeTf }) {
           </span>
         </Tooltip>
       </div>
-
     </div>
   );
 }
