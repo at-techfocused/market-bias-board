@@ -6,105 +6,74 @@ export default function PatternCard({ pattern, timeframe, atr, close }) {
 
   const isBear = pattern.direction === 'BEAR';
   const isBull = pattern.direction === 'BULL';
-
-  const borderColor = isBear ? '#f85149' : isBull ? '#3fb950' : '#d29922';
+  const accentColor = isBear ? '#f85149' : isBull ? '#3fb950' : '#d29922';
   const isType1 = pattern.type === 1;
 
   const reliability = isType1 ? '69%' : '54%';
   const tgtPct = isType1 ? '7.0' : '12.0';
-  const tgtSign = isBear ? '−' : '+';
+  const tgtSign = isBear ? '\u2212' : '+';
   const tgtColor = isBear ? '#f85149' : '#3fb950';
 
-  const stopPrice = atr != null
-    ? (isBear ? close + atr * 1.5 : close - atr * 1.5)
-    : null;
+  const stopPrice = atr != null ? (isBear ? close + atr * 1.5 : close - atr * 1.5) : null;
 
-  const nameText = isBear
-    ? '▼ Bear Marubozu'
-    : isBull
-    ? '▲ Bull Marubozu'
-    : '◆ Doji';
+  const nameText = isBear ? '\u25BC Bear Marubozu' : isBull ? '\u25B2 Bull Marubozu' : '\u25C6 Doji';
 
   const desc = isType1
-    ? `Near-zero wicks · pure conviction ${isBear ? 'selling' : 'buying'} · Body ${pattern.bodyPct}% · $${fmtPrice(pattern.price)}`
-    : `Body ${pattern.bodyPct}% of range — strong indecision · $${fmtPrice(pattern.price)} · ${timeframe} TF`;
-
-  const stopDesc = isType1
-    ? 'Below lowest bottom · 0.5×ATR'
-    : 'Beyond doji extremes + ATR buffer';
-
-  const typeDesc = isType1
-    ? null
-    : 'Type 2: pullback to breakout level — still valid, stop intact';
+    ? `Near-zero wicks \u00B7 pure conviction ${isBear ? 'selling' : 'buying'} \u00B7 Body ${pattern.bodyPct}% \u00B7 $${fmtPrice(pattern.price)}`
+    : `Body ${pattern.bodyPct}% of range \u2014 strong indecision \u00B7 $${fmtPrice(pattern.price)} \u00B7 ${timeframe} TF`;
 
   return (
-    <Tooltip
-      content={
-        <div>
-          <strong>{pattern.name}</strong> — {timeframe} timeframe
-          <br />
-          Direction: <strong style={{ color: borderColor }}>{pattern.direction}</strong>
-          <br />
-          Body ratio: {pattern.bodyPct}% of candle range
-          <br />
-          Type {pattern.type}: {isType1 ? `High conviction (${reliability} reliability)` : `Standard (${reliability} reliability)`}
-          <br />
-          Target: {tgtSign}{tgtPct}% · Stop: ${fmtPrice(stopPrice)} (1.5× ATR)
-          <br />
-          <span style={{ color: '#8b949e' }}>
-            {isBear && 'Strong selling pressure — minimal buyer resistance.'}
-            {isBull && 'Strong buying pressure — minimal seller resistance.'}
-            {!isBear && !isBull && 'Indecision candle — market undecided. Wait for confirmation.'}
-          </span>
-        </div>
-      }
-    >
-      <div
-        className="mt-3 rounded-lg relative overflow-hidden"
-        style={{ background: '#111820', border: '1px solid #1e2d3d' }}
-      >
-        {/* Left border accent */}
-        <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: borderColor }} />
+    <Tooltip content={
+      <div>
+        <strong>{pattern.name}</strong> &mdash; {timeframe} timeframe<br />
+        Direction: <strong style={{ color: accentColor }}>{pattern.direction}</strong><br />
+        Body ratio: {pattern.bodyPct}% of candle range<br />
+        Type {pattern.type}: {isType1 ? `High conviction (${reliability})` : `Standard (${reliability})`}<br />
+        Target: {tgtSign}{tgtPct}% &middot; Stop: ${fmtPrice(stopPrice)} (1.5x ATR)<br />
+        <span style={{ color: '#8b949e' }}>
+          {isBear && 'Strong selling pressure \u2014 minimal buyer resistance.'}
+          {isBull && 'Strong buying pressure \u2014 minimal seller resistance.'}
+          {!isBear && !isBull && 'Indecision candle \u2014 market undecided. Wait for confirmation.'}
+        </span>
+      </div>
+    }>
+      <div className="mt-3 rounded-md relative overflow-hidden"
+        style={{ background: 'rgba(17,24,32,0.6)' }}>
+        {/* Accent-left border (pattern 5) */}
+        <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: accentColor }} />
 
         <div className="px-4 py-3 pl-5">
+          {/* Header: name + type chip */}
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[15px] font-bold tracking-wide" style={{ color: borderColor }}>
-              {nameText}
-            </span>
-            <span
-              className="text-[10px] font-bold px-2.5 py-[3px] rounded tracking-wide"
+            <span className="text-[14px] font-bold tracking-wide" style={{ color: accentColor }}>{nameText}</span>
+            <span className="text-[9px] font-bold px-2 py-[2px] rounded-[3px] tracking-wider"
               style={{
                 color: isType1 ? '#3fb950' : '#58a6ff',
-                background: isType1 ? '#1a3d22' : '#1a2d4a',
-                border: `1px solid ${isType1 ? '#3fb950' : '#58a6ff'}`,
-              }}
-            >
+                background: isType1 ? 'rgba(63,185,80,0.1)' : 'rgba(88,166,255,0.1)',
+              }}>
               TYPE {pattern.type}
             </span>
           </div>
 
-          <div className="text-[11px] leading-relaxed tracking-wide mb-2" style={{ color: '#8b949e' }}>
-            {desc}
-          </div>
+          {/* Description */}
+          <div className="text-[10px] leading-relaxed tracking-wide mb-2.5" style={{ color: '#636e7b' }}>{desc}</div>
 
-          <div className="flex items-center gap-3 text-[11px] font-bold tracking-wide">
-            <span style={{ color: '#8b949e' }}>
+          {/* Stats row — chip-like inline badges */}
+          <div className="flex items-center gap-2 text-[10px] font-bold tracking-wide">
+            <span style={{ color: '#636e7b' }}>
               Reliability: <span style={{ color: '#cdd9e5' }}>{reliability}</span>
             </span>
-            <span style={{ color: tgtColor }}>
-              TGT {tgtSign}{tgtPct}%
-            </span>
-            <span style={{ color: '#f85149' }}>
-              STOP ${fmtPrice(stopPrice)}
-            </span>
+            <span style={{ color: tgtColor }}>TGT {tgtSign}{tgtPct}%</span>
+            <span style={{ color: '#f85149' }}>STOP ${fmtPrice(stopPrice)}</span>
           </div>
 
-          <div className="text-[10px] mt-1.5 leading-relaxed" style={{ color: '#636e7b' }}>
-            {stopDesc}
+          {/* Subtext */}
+          <div className="text-[9px] mt-1.5 leading-relaxed" style={{ color: '#4d5768' }}>
+            {isType1 ? 'Below lowest bottom \u00B7 0.5\u00D7ATR' : 'Beyond doji extremes + ATR buffer'}
           </div>
-          {typeDesc && (
-            <div className="text-[10px] mt-0.5 leading-relaxed" style={{ color: '#636e7b' }}>
-              {typeDesc}
+          {!isType1 && (
+            <div className="text-[9px] mt-0.5 leading-relaxed" style={{ color: '#4d5768' }}>
+              Type 2: pullback to breakout level \u2014 still valid, stop intact
             </div>
           )}
         </div>
