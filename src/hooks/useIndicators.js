@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { computeSignals, getCompositeLabel, getCompositeDescription, getActionLabel } from '../utils/indicators';
+import { computeSignals } from '../utils/indicators';
 
 export function useIndicators(data) {
   return useMemo(() => {

@@ -1,19 +1,10 @@
 import Tooltip from './Tooltip';
+import { getBiasColor, fmtPrice } from '../utils/format';
 
-function getBiasColor(score) {
-  if (score <= 40) return '#f85149';
-  if (score >= 60) return '#3fb950';
-  return '#d29922';
-}
+const SIGNAL_COLORS = { bull: '#3fb950', bear: '#f85149', neut: '#d29922', mixed: '#58a6ff' };
 
 function SignalRow({ name, value, colorClass, tooltip, sub }) {
-  const colorMap = {
-    bull: '#3fb950',
-    bear: '#f85149',
-    neut: '#d29922',
-    mixed: '#58a6ff',
-  };
-  const c = colorMap[colorClass] || '#636e7b';
+  const c = SIGNAL_COLORS[colorClass] || '#636e7b';
 
   const row = (
     <div className="flex items-center justify-between gap-2 py-[10px]"
@@ -38,13 +29,6 @@ function SignalRow({ name, value, colorClass, tooltip, sub }) {
     return <Tooltip content={tooltip}>{row}</Tooltip>;
   }
   return row;
-}
-
-function fmtPrice(val) {
-  if (val == null) return '--';
-  if (val >= 10000) return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  if (val >= 100) return val.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 }
 
 // EMA period label colors: 20=red, 50=orange, 100=teal, 200=blue

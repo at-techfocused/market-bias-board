@@ -1,31 +1,11 @@
 import Tooltip from './Tooltip';
-
-function fmt(val) {
-  if (val == null) return '--';
-  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: val > 1000 ? 2 : 3 });
-}
-
-function getBiasLabel(score) {
-  if (score == null) return 'NEUTRAL';
-  if (score <= 40) return 'BEARISH';
-  if (score >= 60) return 'BULLISH';
-  return 'NEUTRAL';
-}
-
-function getBiasColor(score) {
-  if (score == null) return '#636e7b';
-  if (score <= 40) return '#f85149';
-  if (score >= 60) return '#3fb950';
-  return '#d29922';
-}
+import { getBiasLabel, getBiasColor, fmtPrice, TF_KEYS, TF_DISPLAY } from '../utils/format';
 
 function getActionLabel(score, hasConflict) {
   if (hasConflict) {
-    if (score <= 20) return 'BEAR BIAS';
     if (score <= 45) return 'BEAR BIAS';
     if (score <= 55) return 'NEUTRAL';
-    if (score >= 56) return 'BULL BIAS';
-    return 'NEUTRAL';
+    return 'BULL BIAS';
   }
   if (score <= 20) return 'STRONG SHORT';
   if (score <= 35) return 'SHORT BIAS';
@@ -75,9 +55,6 @@ function getScoreBreakdown(signals) {
 
   return items;
 }
-
-const TF_KEYS = ['1H', '4H', 'D'];
-const TF_DISPLAY = { '1H': '1H', '4H': '4H', D: 'DAILY' };
 
 function buildChecks(signals, tf, isBull) {
   const checks = [];
@@ -192,12 +169,9 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
                 padding: '12px 0',
                 background: isActive ? '#1e2d3d' : 'transparent',
                 color: isActive ? '#00d4ff' : '#3d4a57',
-                borderBottom: isActive ? '2px solid #00d4ff' : '2px solid transparent',
-                cursor: 'pointer',
                 border: 'none',
-                borderBottomWidth: 2,
-                borderBottomStyle: 'solid',
-                borderBottomColor: isActive ? '#00d4ff' : 'transparent',
+                borderBottom: `2px solid ${isActive ? '#00d4ff' : 'transparent'}`,
+                cursor: 'pointer',
                 minHeight: 40,
               }}
             >
@@ -329,21 +303,21 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
         <Tooltip content={<div><strong>Entry</strong>: Current market price ({activeTf}).</div>}>
           <div className="py-3 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Entry</div>
-            <div className="text-[16px] font-bold" style={{ color: '#cdd9e5' }}>${fmt(entry)}</div>
+            <div className="text-[16px] font-bold" style={{ color: '#cdd9e5' }}>${fmtPrice(entry)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>market</div>
           </div>
         </Tooltip>
         <Tooltip content={<div><strong>Stop</strong>: 1.5x ATR ({activeTf}).</div>}>
           <div className="py-3 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Stop</div>
-            <div className="text-[16px] font-bold" style={{ color: '#f85149' }}>${fmt(stop)}</div>
+            <div className="text-[16px] font-bold" style={{ color: '#f85149' }}>${fmtPrice(stop)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>{stopPct != null ? `${stopPct.toFixed(1)}%` : '--'}</div>
           </div>
         </Tooltip>
         <Tooltip content={<div><strong>Target</strong>: 3x ATR ({activeTf}), 2:1 R:R.</div>}>
           <div className="py-3 text-center">
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Target</div>
-            <div className="text-[16px] font-bold" style={{ color: '#3fb950' }}>${fmt(target)}</div>
+            <div className="text-[16px] font-bold" style={{ color: '#3fb950' }}>${fmtPrice(target)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>{targetPct != null ? `${targetPct.toFixed(1)}%` : '--'}</div>
           </div>
         </Tooltip>

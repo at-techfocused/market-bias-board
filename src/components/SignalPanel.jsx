@@ -2,25 +2,11 @@ import CompositeScore from './CompositeScore';
 import TimeframePanel from './TimeframePanel';
 import PatternCard from './PatternCard';
 import MiniCardGrid from './MiniCardGrid';
-
-function getBiasLabel(score) {
-  if (score == null) return 'LOADING';
-  if (score <= 40) return 'BEARISH';
-  if (score >= 60) return 'BULLISH';
-  return 'NEUTRAL';
-}
-
-function getBiasColor(score) {
-  if (score == null) return '#636e7b';
-  if (score <= 40) return '#f85149';
-  if (score >= 60) return '#3fb950';
-  return '#d29922';
-}
+import { getBiasLabel, getBiasColor, TF_DISPLAY } from '../utils/format';
 
 function formatTickerDisplay(ticker) {
   if (!ticker) return '--';
-  const parts = ticker.split(':');
-  return parts[parts.length - 1];
+  return ticker.split(':').pop();
 }
 
 // Full asset name mapping
@@ -132,8 +118,9 @@ export default function SignalPanel({ signals, data, lastFetch, ticker, activeTf
 
       {/* Active Timeframe panel only */}
       {(() => {
-        const tfMap = { '1H': { label: '1H', signals: h1 }, '4H': { label: '4H', signals: h4 }, D: { label: 'DAILY', signals: d } };
-        const { label, signals: tfSignals } = tfMap[activeTf];
+        const tfSignalsMap = { '1H': h1, '4H': h4, D: d };
+        const tfSignals = tfSignalsMap[activeTf];
+        const label = TF_DISPLAY[activeTf];
         const tfColor = getBiasColor(tfSignals?.score);
         const tfBias = getBiasLabel(tfSignals?.score);
         return (

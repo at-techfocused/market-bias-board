@@ -1,5 +1,5 @@
 // ── EMA (Exponential Moving Average) ──
-export function calcEMA(closes, period) {
+function calcEMA(closes, period) {
   if (closes.length < period) return null;
   const k = 2 / (period + 1);
   let ema = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
@@ -24,7 +24,7 @@ function calcEMASeries(closes, period) {
 }
 
 // ── SMMA (Smoothed Moving Average) ──
-export function calcSMMA(closes, period = 99) {
+function calcSMMA(closes, period = 99) {
   if (closes.length < period) return null;
   let smma = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
   for (let i = period; i < closes.length; i++) {
@@ -34,7 +34,7 @@ export function calcSMMA(closes, period = 99) {
 }
 
 // ── RSI (Relative Strength Index) ──
-export function calcRSI(closes, period = 14) {
+function calcRSI(closes, period = 14) {
   if (closes.length < period + 1) return null;
   let gains = 0, losses = 0;
   for (let i = 1; i <= period; i++) {
@@ -50,21 +50,15 @@ export function calcRSI(closes, period = 14) {
     avgLoss = (avgLoss * (period - 1) + Math.max(-diff, 0)) / period;
   }
   if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - 100 / (1 + rs);
+  return 100 - 100 / (1 + avgGain / avgLoss);
 }
 
 // ── ATR (Average True Range) ──
-export function calcATR(highs, lows, closes, period = 14) {
+function calcATR(highs, lows, closes, period = 14) {
   if (closes.length < period + 1) return null;
   const trs = [];
   for (let i = 1; i < closes.length; i++) {
-    const tr = Math.max(
-      highs[i] - lows[i],
-      Math.abs(highs[i] - closes[i - 1]),
-      Math.abs(lows[i] - closes[i - 1])
-    );
-    trs.push(tr);
+    trs.push(Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i - 1]), Math.abs(lows[i] - closes[i - 1])));
   }
   let atr = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
   for (let i = period; i < trs.length; i++) {
@@ -74,48 +68,35 @@ export function calcATR(highs, lows, closes, period = 14) {
 }
 
 // ── Bollinger Bands ──
-export function calcBollingerBands(closes, period = 20, stdDevMultiplier = 2) {
+function calcBollingerBands(closes, period = 20, mult = 2) {
   if (closes.length < period) return null;
   const recent = closes.slice(-period);
   const sma = recent.reduce((a, b) => a + b, 0) / period;
-  const variance = recent.reduce((sum, c) => sum + (c - sma) ** 2, 0) / period;
-  const stdDev = Math.sqrt(variance);
-  return {
-    upper: sma + stdDevMultiplier * stdDev,
-    middle: sma,
-    lower: sma - stdDevMultiplier * stdDev,
-  };
+  const stdDev = Math.sqrt(recent.reduce((sum, c) => sum + (c - sma) ** 2, 0) / period);
+  return { upper: sma + mult * stdDev, middle: sma, lower: sma - mult * stdDev };
 }
 
 // ── MACD ──
-export function calcMACD(closes, fast = 12, slow = 26, signal = 9) {
+function calcMACD(closes, fast = 12, slow = 26, signal = 9) {
   if (closes.length < slow + signal) return null;
   const fastEMA = calcEMASeries(closes, fast);
   const slowEMA = calcEMASeries(closes, slow);
-  // Align arrays — slowEMA starts later
-  const offset = fast < slow ? slow - fast : 0;
-  const macdLine = [];
-  for (let i = 0; i < slowEMA.length; i++) {
-    macdLine.push(fastEMA[i + offset] - slowEMA[i]);
-  }
+  const offset = slow - fast;
+  const macdLine = slowEMA.map((s, i) => fastEMA[i + offset] - s);
   if (macdLine.length < signal) return null;
-  // Signal line is EMA of MACD line
   const k = 2 / (signal + 1);
   let sigEma = macdLine.slice(0, signal).reduce((a, b) => a + b, 0) / signal;
   for (let i = signal; i < macdLine.length; i++) {
     sigEma = macdLine[i] * k + sigEma * (1 - k);
   }
   const macd = macdLine[macdLine.length - 1];
-  const histogram = macd - sigEma;
-  return { macd, signal: sigEma, histogram };
+  return { macd, signal: sigEma, histogram: macd - sigEma };
 }
 
 // ── ADX (Average Directional Index) ──
-export function calcADX(highs, lows, closes, period = 14) {
+function calcADX(highs, lows, closes, period = 14) {
   if (closes.length < period * 2 + 1) return null;
-  const plusDMs = [];
-  const minusDMs = [];
-  const trs = [];
+  const plusDMs = [], minusDMs = [], trs = [];
   for (let i = 1; i < highs.length; i++) {
     const upMove = highs[i] - highs[i - 1];
     const downMove = lows[i - 1] - lows[i];
@@ -134,8 +115,7 @@ export function calcADX(highs, lows, closes, period = 14) {
     const plusDI = atr !== 0 ? (plusDM / atr) * 100 : 0;
     const minusDI = atr !== 0 ? (minusDM / atr) * 100 : 0;
     const diSum = plusDI + minusDI;
-    const dx = diSum !== 0 ? (Math.abs(plusDI - minusDI) / diSum) * 100 : 0;
-    dxValues.push(dx);
+    dxValues.push(diSum !== 0 ? (Math.abs(plusDI - minusDI) / diSum) * 100 : 0);
   }
   if (dxValues.length < period) return null;
   let adx = dxValues.slice(0, period).reduce((a, b) => a + b, 0) / period;
@@ -146,38 +126,33 @@ export function calcADX(highs, lows, closes, period = 14) {
 }
 
 // ── Volume Ratio (current vs 20-period average) ──
-export function calcVolumeRatio(volumes) {
+function calcVolumeRatio(volumes) {
   if (!volumes || volumes.length < 21) return null;
-  const recent = volumes[volumes.length - 1];
   const avg = volumes.slice(-21, -1).reduce((a, b) => a + b, 0) / 20;
   if (avg === 0) return null;
-  return parseFloat((recent / avg).toFixed(1));
+  return parseFloat((volumes[volumes.length - 1] / avg).toFixed(1));
 }
 
-// ── EMA Stack Alignment ──
-export function getEMAStack(close, ema20, ema50, ema100, ema200) {
+// ── Classification helpers ──
+function getEMAStack(close, ema20, ema50, ema100, ema200) {
   if ([ema20, ema50, ema100, ema200].some((v) => v == null)) return 'MIXED';
   if (close > ema20 && ema20 > ema50 && ema50 > ema100 && ema100 > ema200) return 'BULL';
   if (close < ema20 && ema20 < ema50 && ema50 < ema100 && ema100 < ema200) return 'BEAR';
   return 'MIXED';
 }
 
-// ── SMMA Position ──
-export function getSMMAPosition(close, smma) {
-  if (smma == null) return 'BELOW';
-  return close > smma ? 'ABOVE' : 'BELOW';
+function getSMMAPosition(close, smma) {
+  return smma == null || close <= smma ? 'BELOW' : 'ABOVE';
 }
 
-// ── RSI Zone ──
-export function getRSIZone(rsi) {
+function getRSIZone(rsi) {
   if (rsi == null) return 'NEUTRAL';
   if (rsi > 55) return 'BULLISH';
   if (rsi < 45) return 'BEARISH';
   return 'NEUTRAL';
 }
 
-// ── MACD Direction ──
-export function getMACDDirection(macdData) {
+function getMACDDirection(macdData) {
   if (!macdData) return 'NEUTRAL';
   if (macdData.histogram > 0 && macdData.macd > macdData.signal) return 'BULL';
   if (macdData.histogram < 0 && macdData.macd < macdData.signal) return 'BEAR';
@@ -185,83 +160,41 @@ export function getMACDDirection(macdData) {
 }
 
 // ── Pattern Detection ──
-export function detectPattern(candles) {
+function detectPattern(candles) {
   const len = candles.length;
   for (let i = len - 1; i >= Math.max(0, len - 3); i--) {
     const { o, h, l, c } = candles[i];
     const range = h - l;
     if (range === 0) continue;
-    const body = Math.abs(c - o);
-    const bodyRatio = body / range;
-
+    const bodyRatio = Math.abs(c - o) / range;
     if (bodyRatio < 0.10) {
-      return { name: 'Doji', direction: 'NEUTRAL', symbol: '◆', type: 2, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
+      return { name: 'Doji', direction: 'NEUTRAL', symbol: '\u25C6', type: 2, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
     }
-    if (bodyRatio > 0.90 && c > o) {
-      return { name: 'Bullish Marubozu', direction: 'BULL', symbol: '▲', type: 1, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
-    }
-    if (bodyRatio > 0.90 && c < o) {
-      return { name: 'Bear Marubozu', direction: 'BEAR', symbol: '▼', type: 1, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
+    if (bodyRatio > 0.90) {
+      const dir = c > o ? 'BULL' : 'BEAR';
+      const name = c > o ? 'Bullish Marubozu' : 'Bear Marubozu';
+      const symbol = c > o ? '\u25B2' : '\u25BC';
+      return { name, direction: dir, symbol, type: 1, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
     }
   }
   return null;
 }
 
-// ── Scoring (now includes MACD) ──
-// MIXED EMA gives only 5/20 — a mixed stack should meaningfully reduce score
-export function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir) {
+// ── Scoring ──
+// MIXED EMA gets only 5/20 to prevent false high scores
+function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir) {
   let score = 0;
-  // EMA Stack: 20pts — MIXED gets only 5 (not 10) to prevent false high scores
   score += emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 5;
-  // SMMA 99: 20pts
   score += smmaPos === 'ABOVE' ? 20 : 0;
-  // RSI Zone: 20pts
   score += rsiZone === 'BULLISH' ? 20 : rsiZone === 'BEARISH' ? 0 : 10;
-  // MACD: 20pts
   score += macdDir === 'BULL' ? 20 : macdDir === 'BEAR' ? 0 : 10;
-  // Pattern: 20pts
-  if (pattern == null) {
-    score += 10;
-  } else {
-    score += pattern.direction === 'BULL' ? 20 : pattern.direction === 'BEAR' ? 0 : 10;
-  }
+  score += pattern == null ? 10 : pattern.direction === 'BULL' ? 20 : pattern.direction === 'BEAR' ? 0 : 10;
   return score;
-}
-
-export function getCompositeLabel(score) {
-  if (score <= 25) return 'STRONG BEAR';
-  if (score <= 40) return 'BEAR BIAS';
-  if (score <= 60) return 'NEUTRAL';
-  if (score <= 75) return 'BULL BIAS';
-  return 'STRONG BULL';
-}
-
-export function getActionLabel(score) {
-  if (score <= 20) return 'STRONG SHORT';
-  if (score <= 35) return 'SHORT BIAS';
-  if (score <= 45) return 'LEAN SHORT';
-  if (score <= 55) return 'NEUTRAL';
-  if (score <= 65) return 'LEAN LONG';
-  if (score <= 80) return 'STRONG LONG';
-  return 'STRONG LONG';
-}
-
-export function getCompositeDescription(label) {
-  switch (label) {
-    case 'STRONG BEAR': return 'High conviction bearish. Short on bounces. Trail stop tight.';
-    case 'BEAR BIAS': return 'Majority of indicators bearish. Lean short, tighten any longs held.';
-    case 'NEUTRAL': return 'Mixed signals across timeframes. Monitor closely.';
-    case 'BULL BIAS': return 'Majority of indicators aligned bullish. Lean long, scale in with R.';
-    case 'STRONG BULL': return 'High conviction. All indicators aligned bullish. Scale in with full R.';
-    default: return '';
-  }
 }
 
 // ── Compute all signals for a candle set ──
 export function computeSignals(candles) {
-  if (!candles || candles.length < 200) {
-    return null;
-  }
+  if (!candles || candles.length < 200) return null;
 
   const closes = candles.map((c) => c.c);
   const highs = candles.map((c) => c.h);

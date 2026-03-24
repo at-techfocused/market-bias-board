@@ -174,7 +174,7 @@ async function fetchYahooDirect(ticker, resolution) {
 }
 
 // ── Unified fetch ──
-export async function fetchCandles(ticker, resolution) {
+async function fetchCandles(ticker, resolution) {
   if (IS_PROD) {
     return fetchViaProxy(ticker, resolution);
   }
@@ -198,9 +198,4 @@ export async function fetchTripleTimeframe(ticker) {
   const extract = (r) => (r.status === 'fulfilled' ? r.value : null);
 
   return { '1H': extract(results[0]), '4H': extract(results[1]), D: extract(results[2]) };
-}
-
-// Keep backward compat
-export async function fetchDualTimeframe(ticker) {
-  return fetchTripleTimeframe(ticker);
 }

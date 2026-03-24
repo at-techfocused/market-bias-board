@@ -1,9 +1,5 @@
 import Tooltip from './Tooltip';
-
-function fmtPrice(val) {
-  if (val == null) return '--';
-  return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: val > 1000 ? 2 : 3 });
-}
+import { fmtPrice } from '../utils/format';
 
 export default function PatternCard({ pattern, timeframe, atr, close }) {
   if (!pattern) return null;
