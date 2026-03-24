@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import TradingViewWidget from './components/TradingViewWidget';
 import Panel from './components/Panel';
+import ChartOverlay from './components/ChartOverlay';
 import { useFinnhub } from './hooks/useFinnhub';
 import { useIndicators } from './hooks/useIndicators';
 
@@ -72,8 +73,11 @@ export default function App() {
       <div className="flex-1 flex" style={{ padding: 12, gap: 12, minHeight: 0 }}>
         {/* Chart card */}
         <div className="flex-1 flex flex-col overflow-hidden"
-          style={{ background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          style={{ position: 'relative', background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
+          <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}>
+            <ChartOverlay signals={signals} activeTf={activeTf} />
+          </div>
         </div>
         {/* Panel */}
         <div style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
