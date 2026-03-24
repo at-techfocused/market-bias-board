@@ -252,7 +252,7 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
       </div>
 
       {/* Score bar + context — separate block below */}
-      <div className="px-5 pt-2 pb-4" style={{ borderBottom: '1px solid #1e2d3d' }}>
+      <div className="px-5 pt-3 pb-5" style={{ borderBottom: '1px solid #1e2d3d' }}>
         <div className="h-[6px] rounded overflow-hidden" style={{ background: '#161e28' }}>
           <div
             className="h-full rounded relative"
@@ -269,7 +269,7 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
         </div>
 
         {/* Context strip for other TFs */}
-        <div className="flex items-center gap-3 mt-3">
+        <div className="flex items-center gap-3 mt-4">
           {otherTfs.map((tf) => {
             const sig = signals?.[tf];
             if (!sig) return null;
@@ -287,7 +287,7 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
         {/* Conflict badge */}
         {hasConflict && (
           <div
-            className="mt-3 px-3 py-2.5 rounded flex items-center gap-2 text-[11px] tracking-wide leading-relaxed"
+            className="mt-4 px-3 py-2.5 rounded flex items-center gap-2 text-[11px] tracking-wide leading-relaxed"
             style={{ background: '#3d2e0a', border: '1px solid #d29922', color: '#d29922' }}
           >
             <span className="text-[12px]">&#9888;</span>
@@ -301,21 +301,21 @@ export default function CompositeScore({ activeTf, onTfChange, signals, lastFetc
       {/* Entry / Stop / Target */}
       <div className="grid grid-cols-3 gap-0" style={{ borderBottom: '1px solid #1e2d3d' }}>
         <Tooltip content={<div><strong>Entry</strong>: Current market price ({activeTf}).</div>}>
-          <div className="py-3 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
+          <div className="py-4 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Entry</div>
             <div className="text-[16px] font-bold" style={{ color: '#cdd9e5' }}>${fmtPrice(entry)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>market</div>
           </div>
         </Tooltip>
         <Tooltip content={<div><strong>Stop</strong>: 1.5x ATR ({activeTf}).</div>}>
-          <div className="py-3 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
+          <div className="py-4 text-center" style={{ borderRight: '1px solid #1e2d3d' }}>
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Stop</div>
             <div className="text-[16px] font-bold" style={{ color: '#f85149' }}>${fmtPrice(stop)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>{stopPct != null ? `${stopPct.toFixed(1)}%` : '--'}</div>
           </div>
         </Tooltip>
         <Tooltip content={<div><strong>Target</strong>: 3x ATR ({activeTf}), 2:1 R:R.</div>}>
-          <div className="py-3 text-center">
+          <div className="py-4 text-center">
             <div className="text-[10px] tracking-[0.1em] uppercase mb-1 font-semibold" style={{ color: '#636e7b' }}>Target</div>
             <div className="text-[16px] font-bold" style={{ color: '#3fb950' }}>${fmtPrice(target)}</div>
             <div className="text-[10px] mt-0.5" style={{ color: '#636e7b' }}>{targetPct != null ? `${targetPct.toFixed(1)}%` : '--'}</div>
