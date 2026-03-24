@@ -18,16 +18,16 @@ export default function PanelTopBar({ ticker, name, signals, activeTf }) {
       style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
       <div className="flex items-center gap-2">
         <div className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: color }} />
-        <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, letterSpacing: '0.04em' }}>{ticker}</span>
-        <span style={{ color: 'var(--text-body)', fontSize: 10, opacity: 0.6 }}>{name}</span>
+        <span style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, letterSpacing: '0.04em' }}>{ticker}</span>
+        <span style={{ color: 'var(--text-body)', fontSize: 11, opacity: 0.6 }}>{name}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span style={{ color: 'var(--green)', fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ color: 'var(--green)', fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
           ${fmtPrice(price)}
         </span>
         {pctChange != null && (
           <span className="px-1.5 py-[1px] rounded-[3px]"
-            style={{ fontSize: 9, fontWeight: 700, background: 'rgba(91,201,138,0.1)', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
+            style={{ fontSize: 10, fontWeight: 700, background: 'rgba(91,201,138,0.1)', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
             ATR {pctChange}%
           </span>
         )}

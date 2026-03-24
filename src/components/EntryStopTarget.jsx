@@ -21,17 +21,17 @@ export default function EntryStopTarget({ signals, activeTf }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4" style={{ padding: '14px 16px' }}>
+    <div className="grid grid-cols-3 gap-4" style={{ padding: '0 16px 14px' }}>
       {cols.map((col) => (
         <div key={col.label}>
           <div className="h-[2px] rounded-full" style={{ background: col.accent, marginBottom: 10 }} />
-          <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
             {col.label}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: col.color, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 17, fontWeight: 700, color: col.color, fontVariantNumeric: 'tabular-nums' }}>
             ${fmtPrice(col.value)}
           </div>
-          <div style={{ fontSize: 9, color: 'var(--text-body)', opacity: 0.6, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
             {col.sub}
           </div>
         </div>

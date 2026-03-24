@@ -35,13 +35,13 @@ export default function TimeframeTabs({ signals, activeTf, onTfChange }) {
               padding: '10px 0 8px',
               transition: 'all 0.15s ease',
             }}>
-            <div style={{ fontSize: 9, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>
               {TF_DISPLAY[tf]}
             </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {score ?? '--'}
             </div>
-            <div style={{ fontSize: 9, color: 'var(--text-body)', marginTop: 2 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 2 }}>
               {bias}
             </div>
           </button>

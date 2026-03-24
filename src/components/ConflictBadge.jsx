@@ -11,8 +11,8 @@ export default function ConflictBadge({ signals }) {
 
   return (
     <div className="flex items-start gap-2" style={{ padding: '14px 16px' }}>
-      <span style={{ color: 'var(--amber)', fontSize: 12, lineHeight: 1 }}>!</span>
-      <span style={{ fontSize: 10, color: 'var(--text-body)', lineHeight: 1.5 }}>
+      <span style={{ color: 'var(--amber)', fontSize: 14, lineHeight: 1 }}>!</span>
+      <span style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5 }}>
         Conflict — 4H {h4Side}, Daily {dSide}. Signal capped at bias level. Await resolution before sizing in.
       </span>
     </div>

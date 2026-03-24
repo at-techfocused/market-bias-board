@@ -10,7 +10,8 @@ import SmmaCard from './SmmaCard';
 import PatternBreakouts from './PatternBreakouts';
 import SignalCardsGrid from './SignalCardsGrid';
 import PanelFooter from './PanelFooter';
-import { TF_KEYS } from '../utils/format';
+import CollapsibleSection from './CollapsibleSection';
+import { TF_KEYS, TF_DISPLAY, getBiasLabel, getBiasColor } from '../utils/format';
 
 const ASSET_NAMES = {
   'BINANCE:BTCUSDT': 'Bitcoin',
@@ -31,12 +32,30 @@ const card = {
   background: 'var(--bg-base)',
   border: '1px solid var(--border)',
   borderRadius: 10,
-  overflow: 'hidden',
+  flexShrink: 0,
 };
 
 function Card({ children, style }) {
   if (!children) return null;
   return <div style={{ ...card, ...style }}>{children}</div>;
+}
+
+function StackBadge({ value }) {
+  const color = value === 'BULL' ? 'var(--green)' : value === 'BEAR' ? 'var(--red)' : 'var(--amber)';
+  return (
+    <span className="px-2 py-[2px] rounded-[3px]"
+      style={{ fontSize: 10, fontWeight: 700, color, background: value === 'BULL' ? 'rgba(91,201,138,0.1)' : value === 'BEAR' ? 'rgba(224,85,85,0.1)' : 'rgba(200,124,0,0.1)' }}>
+      {value}
+    </span>
+  );
+}
+
+function SmmaBadge({ isAbove }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 700, color: isAbove ? 'var(--green)' : 'var(--red)' }}>
+      {isAbove ? 'ABOVE ▲' : 'BELOW ▼'}
+    </span>
+  );
 }
 
 export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTfChange }) {
@@ -76,6 +95,9 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
   const hasConflict = h4Score != null && dScore != null &&
     ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
 
+  const biasLabel = active ? getBiasLabel(active.score) : '';
+  const biasColor = active ? getBiasColor(active.score) : '';
+
   return (
     <div className="flex flex-col h-full"
       style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
@@ -84,17 +106,70 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
       <TimeframeTabs signals={signals} activeTf={activeTf} onTfChange={onTfChange} />
 
       {/* Scrollable card stack */}
-      <div className="flex-1 overflow-y-auto flex flex-col"
-        style={{ padding: 8, gap: 6, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        <Card><HeroBlock signals={signals} activeTf={activeTf} /></Card>
-        {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
-        <Card><EntryStopTarget signals={signals} activeTf={activeTf} /></Card>
-        <Card><MetricsRow signals={signals} activeTf={activeTf} /></Card>
-        <Card><SignalRows signals={signals} activeTf={activeTf} /></Card>
-        <Card><EmaStackDetail signals={signals} activeTf={activeTf} /></Card>
-        <Card><SmmaCard signals={signals} activeTf={activeTf} /></Card>
-        <Card><PatternBreakouts signals={signals} activeTf={activeTf} /></Card>
-        <Card><SignalCardsGrid signals={signals} activeTf={activeTf} /></Card>
+      <div className="flex-1 overflow-y-auto"
+        style={{ padding: 8, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+          <Card>
+            <CollapsibleSection
+              title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
+              badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
+            >
+              <HeroBlock signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
+
+          <Card>
+            <CollapsibleSection title={`ENTRY / STOP / TARGET`}>
+              <EntryStopTarget signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection title={`METRICS · ${TF_DISPLAY[activeTf]}`}>
+              <MetricsRow signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection title={`SIGNALS · ${TF_DISPLAY[activeTf]}`}>
+              <SignalRows signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection
+              title={`EMA STACK DETAIL · ${TF_DISPLAY[activeTf]}`}
+              badge={active ? <StackBadge value={active.emaStack} /> : null}
+            >
+              <EmaStackDetail signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection
+              title={`SMMA 99 · ${TF_DISPLAY[activeTf]}`}
+              badge={active ? <SmmaBadge isAbove={active.smma99 === 'ABOVE'} /> : null}
+            >
+              <SmmaCard signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection title="PATTERN BREAKOUTS">
+              <PatternBreakouts signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection title={`SIGNAL CARDS · ${TF_DISPLAY[activeTf]}`}>
+              <SignalCardsGrid signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+        </div>
       </div>
 
       <PanelFooter signals={signals} activeTf={activeTf} />

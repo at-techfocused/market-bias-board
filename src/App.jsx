@@ -76,7 +76,7 @@ export default function App() {
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
         {/* Panel */}
-        <div style={{ width: 420, minWidth: 420, flexShrink: 0 }}>
+        <div style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
           <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
         </div>
       </div>

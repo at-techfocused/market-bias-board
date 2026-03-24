@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TF_DISPLAY, fmtPrice } from '../utils/format';
+import { TF_DISPLAY } from '../utils/format';
 
 export default function PanelFooter({ signals, activeTf }) {
   const [time, setTime] = useState('');
@@ -22,12 +22,12 @@ export default function PanelFooter({ signals, activeTf }) {
   const rr = stopPct != null && stopPct > 0 ? (targetPct / stopPct) : null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-2"
+    <div className="flex items-center justify-between px-4 py-2.5"
       style={{ background: 'var(--bg-deep)', borderTop: '1px solid var(--border)' }}>
-      <span style={{ fontSize: 9, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 10, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
         R:R {rr != null ? `${rr.toFixed(1)}:1` : '--'} · {TF_DISPLAY[activeTf]} · 1.5× ATR stop
       </span>
-      <span style={{ fontSize: 9, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 10, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
         {time}
       </span>
     </div>
