@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import TradingViewWidget from './components/TradingViewWidget';
-import SignalPanel from './components/SignalPanel';
+import Panel from './components/Panel';
 import { useFinnhub } from './hooks/useFinnhub';
 import { useIndicators } from './hooks/useIndicators';
 
@@ -31,7 +31,6 @@ export default function App() {
   const { data, lastFetch, loadTicker } = useFinnhub();
   const signals = useIndicators(data);
 
-  // Map TF selection to TradingView interval
   const chartInterval = useMemo(() => {
     const map = { '1H': '60', '4H': '240', D: 'D' };
     return map[activeTf] || '240';
@@ -61,7 +60,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: '#080c10', fontFamily: "'IBM Plex Mono', monospace" }}>
+    <div className="h-screen flex flex-col" style={{ background: 'var(--bg-deep)', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopBar
         activeTicker={activeTicker}
         watchlist={watchlist}
@@ -70,11 +69,11 @@ export default function App() {
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
       />
-      <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 700px' }}>
-        <div className="flex flex-col p-3" style={{ borderRight: '2px solid #1e2d3d' }}>
+      <div className="flex-1 grid" style={{ gridTemplateColumns: '1fr 400px' }}>
+        <div className="flex flex-col p-3" style={{ borderRight: '1px solid var(--border)' }}>
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
-        <SignalPanel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
+        <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
       </div>
     </div>
   );

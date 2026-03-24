@@ -1,21 +1,18 @@
-// ── Shared bias helpers & formatters ──
-// Single source of truth — used by CompositeScore, SignalPanel, TimeframePanel, PatternCard
-
 export const TF_KEYS = ['1H', '4H', 'D'];
 export const TF_DISPLAY = { '1H': '1H', '4H': '4H', D: 'DAILY' };
 
 export function getBiasLabel(score) {
-  if (score == null) return 'NEUTRAL';
-  if (score <= 40) return 'BEARISH';
-  if (score >= 60) return 'BULLISH';
-  return 'NEUTRAL';
+  if (score == null) return 'Neutral';
+  if (score <= 40) return 'Bearish';
+  if (score >= 60) return 'Bullish';
+  return 'Neutral';
 }
 
 export function getBiasColor(score) {
-  if (score == null) return '#636e7b';
-  if (score <= 40) return '#f85149';
-  if (score >= 60) return '#3fb950';
-  return '#d29922';
+  if (score == null) return 'var(--amber)';
+  if (score <= 40) return 'var(--red)';
+  if (score >= 60) return 'var(--green)';
+  return 'var(--amber)';
 }
 
 export function fmtPrice(val) {
