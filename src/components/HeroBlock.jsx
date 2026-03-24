@@ -102,15 +102,7 @@ export default function HeroBlock({ signals, activeTf }) {
   );
 
   return (
-    <div style={{ padding: '14px 16px' }}>
-      {/* Eyebrow */}
-      <div className="flex items-center gap-1.5" style={{ marginBottom: 8 }}>
-        <div className="w-[5px] h-[5px] rounded-full" style={{ background: color }} />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>
-          {label} · {TF_DISPLAY[activeTf]}
-        </span>
-      </div>
-
+    <div style={{ padding: '4px 16px 14px' }}>
       {/* Score — clickable for breakdown */}
       <Tooltip content={scoreTooltip}>
         <div className="flex items-baseline gap-1.5">

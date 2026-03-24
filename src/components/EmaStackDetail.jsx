@@ -1,14 +1,4 @@
-import { TF_DISPLAY, fmtPrice } from '../utils/format';
-
-function StackBadge({ value }) {
-  const color = value === 'BULL' ? 'var(--green)' : value === 'BEAR' ? 'var(--red)' : 'var(--amber)';
-  return (
-    <span className="px-2 py-[2px] rounded-[3px]"
-      style={{ fontSize: 10, fontWeight: 700, color, background: value === 'BULL' ? 'rgba(91,201,138,0.1)' : value === 'BEAR' ? 'rgba(224,85,85,0.1)' : 'rgba(200,124,0,0.1)' }}>
-      {value}
-    </span>
-  );
-}
+import { fmtPrice } from '../utils/format';
 
 export default function EmaStackDetail({ signals, activeTf }) {
   const active = signals?.[activeTf];
@@ -27,13 +17,7 @@ export default function EmaStackDetail({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '14px 16px' }}>
-      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
-          EMA STACK DETAIL · {TF_DISPLAY[activeTf]}
-        </span>
-        <StackBadge value={active.emaStack} />
-      </div>
+    <div style={{ padding: '0 16px 14px' }}>
       <div className="flex flex-col gap-2.5">
         {rows.map((row) => {
           const above = row.value != null && close > row.value;

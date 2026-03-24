@@ -33,11 +33,7 @@ export default function PatternBreakouts({ signals, activeTf }) {
   const pattern = active?.pattern;
 
   return (
-    <div style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
-        PATTERN BREAKOUTS
-      </div>
-
+    <div style={{ padding: '0 16px 14px' }}>
       {!pattern ? (
         <div className="flex items-center justify-between px-3 py-2.5 rounded-[7px]"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>

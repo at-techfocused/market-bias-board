@@ -21,7 +21,7 @@ export default function EntryStopTarget({ signals, activeTf }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4" style={{ padding: '14px 16px' }}>
+    <div className="grid grid-cols-3 gap-4" style={{ padding: '0 16px 14px' }}>
       {cols.map((col) => (
         <div key={col.label}>
           <div className="h-[2px] rounded-full" style={{ background: col.accent, marginBottom: 10 }} />

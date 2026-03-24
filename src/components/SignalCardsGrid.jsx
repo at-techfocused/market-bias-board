@@ -1,4 +1,3 @@
-import { TF_DISPLAY } from '../utils/format';
 import Tooltip from './Tooltip';
 
 function valColor(label, val) {
@@ -51,10 +50,7 @@ export default function SignalCardsGrid({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
-        SIGNAL CARDS · {TF_DISPLAY[activeTf]}
-      </div>
+    <div style={{ padding: '0 16px 14px' }}>
       <div className="grid grid-cols-2 gap-2">
         {cards.map((card) => {
           const colorVal = card.raw !== undefined ? card.raw : card.value;

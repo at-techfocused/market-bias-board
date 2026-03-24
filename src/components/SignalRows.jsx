@@ -1,4 +1,3 @@
-import { TF_DISPLAY } from '../utils/format';
 import Tooltip from './Tooltip';
 
 function getSignalColor(type) {
@@ -46,10 +45,7 @@ export default function SignalRows({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '14px 16px' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>
-        SIGNALS · {TF_DISPLAY[activeTf]}
-      </div>
+    <div style={{ padding: '0 16px 14px' }}>
       <div className="rounded-[7px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         {rows.map((row, i) => (
           <Tooltip key={row.name} content={
