@@ -31,7 +31,7 @@ const card = {
   background: 'var(--bg-base)',
   border: '1px solid var(--border)',
   borderRadius: 10,
-  overflow: 'hidden',
+  flexShrink: 0,
 };
 
 function Card({ children, style }) {
@@ -84,17 +84,19 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
       <TimeframeTabs signals={signals} activeTf={activeTf} onTfChange={onTfChange} />
 
       {/* Scrollable card stack */}
-      <div className="flex-1 overflow-y-auto flex flex-col"
-        style={{ padding: 8, gap: 6, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        <Card><HeroBlock signals={signals} activeTf={activeTf} /></Card>
-        {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
-        <Card><EntryStopTarget signals={signals} activeTf={activeTf} /></Card>
-        <Card><MetricsRow signals={signals} activeTf={activeTf} /></Card>
-        <Card><SignalRows signals={signals} activeTf={activeTf} /></Card>
-        <Card><EmaStackDetail signals={signals} activeTf={activeTf} /></Card>
-        <Card><SmmaCard signals={signals} activeTf={activeTf} /></Card>
-        <Card><PatternBreakouts signals={signals} activeTf={activeTf} /></Card>
-        <Card><SignalCardsGrid signals={signals} activeTf={activeTf} /></Card>
+      <div className="flex-1 overflow-y-auto"
+        style={{ padding: 8, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Card><HeroBlock signals={signals} activeTf={activeTf} /></Card>
+          {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
+          <Card><EntryStopTarget signals={signals} activeTf={activeTf} /></Card>
+          <Card><MetricsRow signals={signals} activeTf={activeTf} /></Card>
+          <Card><SignalRows signals={signals} activeTf={activeTf} /></Card>
+          <Card><EmaStackDetail signals={signals} activeTf={activeTf} /></Card>
+          <Card><SmmaCard signals={signals} activeTf={activeTf} /></Card>
+          <Card><PatternBreakouts signals={signals} activeTf={activeTf} /></Card>
+          <Card><SignalCardsGrid signals={signals} activeTf={activeTf} /></Card>
+        </div>
       </div>
 
       <PanelFooter signals={signals} activeTf={activeTf} />
