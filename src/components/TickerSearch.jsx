@@ -51,9 +51,14 @@ const TICKERS = [
   { symbol: 'INTC', name: 'Intel Corp.', type: 'stock' },
   { symbol: 'CRM', name: 'Salesforce Inc.', type: 'stock' },
   { symbol: 'UBER', name: 'Uber Technologies', type: 'stock' },
-  // Commodities / Forex
+  // Commodities / Indices
+  { symbol: 'WTI', name: 'WTI Crude Oil', type: 'commodity' },
+  { symbol: 'BRENT', name: 'Brent Crude Oil', type: 'commodity' },
   { symbol: 'XAUUSD', name: 'Gold / USD', type: 'commodity' },
   { symbol: 'XAGUSD', name: 'Silver / USD', type: 'commodity' },
+  { symbol: 'NATGAS', name: 'Natural Gas', type: 'commodity' },
+  { symbol: 'DXY', name: 'US Dollar Index', type: 'commodity' },
+  { symbol: 'VIX', name: 'Volatility Index', type: 'commodity' },
 ];
 
 const TYPE_COLORS = {
