@@ -24,37 +24,44 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
   const isInWatchlist = watchlist.includes(activeTicker);
 
   return (
-    <div className="flex items-center gap-4 px-5 py-2.5 sticky top-0 z-50"
-      style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="w-[7px] h-[7px] rounded-full animate-pulse"
-          style={{ background: 'var(--green)', boxShadow: '0 0 8px var(--green)' }} />
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-          BIASBOARD
-        </span>
+    <div className="topbar" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
+      {/* Top row: logo, search, clock */}
+      <div className="flex items-center gap-3 px-4 py-2.5" style={{ minHeight: 44 }}>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="w-[7px] h-[7px] rounded-full animate-pulse"
+            style={{ background: 'var(--green)', boxShadow: '0 0 8px var(--green)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+            BIASBOARD
+          </span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="shrink-0 topbar-search">
+          <input
+            type="text"
+            placeholder="Search ticker..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              fontSize: 12,
+              padding: '7px 12px',
+              borderRadius: 4,
+              outline: 'none',
+              background: 'var(--bg-base)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              fontFamily: "'Inter', system-ui, sans-serif",
+            }}
+          />
+        </form>
+
+        <div className="ml-auto shrink-0">
+          <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="relative w-[200px] shrink-0">
-        <input
-          type="text"
-          placeholder="Search ticker..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '100%',
-            fontSize: 12,
-            padding: '7px 12px',
-            borderRadius: 4,
-            outline: 'none',
-            background: 'var(--bg-base)',
-            border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
-            fontFamily: "'Inter', system-ui, sans-serif",
-          }}
-        />
-      </form>
-
-      <div className="flex gap-1.5 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+      {/* Watchlist row */}
+      <div className="flex items-center gap-1.5 px-4 pb-2 topbar-watchlist" style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
         {watchlist.map((ticker) => (
           <WatchlistChip
             key={ticker}
@@ -74,10 +81,6 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
             + ADD
           </button>
         )}
-      </div>
-
-      <div className="ml-auto shrink-0">
-        <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
       </div>
     </div>
   );

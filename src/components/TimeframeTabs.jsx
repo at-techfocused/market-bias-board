@@ -16,7 +16,7 @@ function getActiveBg(score) {
 
 export default function TimeframeTabs({ signals, activeTf, onTfChange }) {
   return (
-    <div className="grid grid-cols-3" style={{ background: 'var(--bg-deep)' }}>
+    <div className="grid grid-cols-3 tf-tabs" style={{ background: 'var(--bg-deep)' }}>
       {TF_KEYS.map((tf) => {
         const isActive = tf === activeTf;
         const sig = signals?.[tf];

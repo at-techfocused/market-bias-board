@@ -61,7 +61,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: '#060d13', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="flex flex-col" style={{ height: '100dvh', background: '#060d13', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopBar
         activeTicker={activeTicker}
         watchlist={watchlist}
@@ -70,14 +70,14 @@ export default function App() {
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
       />
-      <div className="flex-1 flex" style={{ padding: 12, gap: 12, minHeight: 0 }}>
+      <div className="flex-1 flex app-layout" style={{ padding: 12, gap: 12, minHeight: 0 }}>
         {/* Chart card */}
-        <div className="flex-1 flex flex-col overflow-hidden"
+        <div className="flex-1 flex flex-col overflow-hidden chart-card"
           style={{ background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
         {/* Panel */}
-        <div style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
+        <div className="panel-wrapper" style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
           <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
         </div>
       </div>
