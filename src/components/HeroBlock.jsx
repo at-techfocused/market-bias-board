@@ -15,18 +15,53 @@ function getActionLabel(score, hasConflict) {
   return 'STRONG LONG';
 }
 
-function getDescription(label) {
-  const map = {
-    'STRONG SHORT': 'High conviction bearish. Short on bounces, trail stop tight.',
-    'SHORT BIAS': 'Indicators lean bearish. Tighten longs, favor short setups.',
-    'LEAN SHORT': 'Slight bearish edge. Small positions, wait for confirmation.',
-    'NEUTRAL': 'Mixed signals. Monitor closely, avoid sizing in.',
-    'LEAN LONG': 'Slight bullish edge. Small positions, scale with confirmation.',
-    'BULL BIAS': 'Indicators lean bullish. Favor long setups, scale in with R.',
-    'BEAR BIAS': 'Indicators lean bearish. Favor short setups, tight risk management.',
-    'STRONG LONG': 'High conviction bullish. All indicators aligned, full R.',
-  };
-  return map[label] || '';
+function buildReasoning(signals) {
+  if (!signals) return 'Awaiting data.';
+
+  const bull = [];
+  const bear = [];
+  const neutral = [];
+
+  // EMA Stack
+  if (signals.emaStack === 'BULL') bull.push('EMA stack bullish aligned');
+  else if (signals.emaStack === 'BEAR') bear.push('EMA stack bearish aligned');
+  else neutral.push('EMA stack mixed');
+
+  // SMMA
+  if (signals.smma99 === 'ABOVE') bull.push('price above SMMA 99');
+  else bear.push('price below SMMA 99');
+
+  // RSI
+  if (signals.rsiZone === 'BULLISH') bull.push(`RSI bullish at ${signals.rsi}`);
+  else if (signals.rsiZone === 'BEARISH') bear.push(`RSI bearish at ${signals.rsi}`);
+  else neutral.push(`RSI neutral at ${signals.rsi}`);
+
+  // MACD
+  if (signals.macdDirection === 'BULL') bull.push('MACD bullish crossover');
+  else if (signals.macdDirection === 'BEAR') bear.push('MACD bearish crossover');
+  else neutral.push('MACD neutral');
+
+  // Pattern
+  if (signals.pattern) {
+    if (signals.pattern.direction === 'BULL') bull.push(`${signals.pattern.name} pattern`);
+    else if (signals.pattern.direction === 'BEAR') bear.push(`${signals.pattern.name} pattern`);
+    else neutral.push(`${signals.pattern.name} (neutral)`);
+  }
+
+  const parts = [];
+  if (bull.length > 0) parts.push(bull.join(', '));
+  if (bear.length > 0) parts.push((bull.length > 0 ? 'but ' : '') + bear.join(', '));
+  if (neutral.length > 0 && parts.length === 0) parts.push(neutral.join(', '));
+
+  const score = signals.score;
+  let prefix;
+  if (score >= 80) prefix = 'Strong bullish conviction —';
+  else if (score >= 60) prefix = 'Bullish lean —';
+  else if (score <= 20) prefix = 'Strong bearish conviction —';
+  else if (score <= 40) prefix = 'Bearish lean —';
+  else prefix = 'Mixed signals —';
+
+  return `${prefix} ${parts.join('; ')}.`;
 }
 
 function getSignalColor(score) {
@@ -79,7 +114,7 @@ export default function HeroBlock({ signals, activeTf }) {
     ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
 
   const label = getActionLabel(score, hasConflict);
-  const desc = getDescription(label);
+  const reasoning = buildReasoning(active);
   const color = getSignalColor(score);
   const breakdown = getBreakdown(active);
 
@@ -138,9 +173,12 @@ export default function HeroBlock({ signals, activeTf }) {
         ))}
       </div>
 
-      {/* Description */}
-      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5 }}>
-        {desc}
+      {/* Action label + reasoning */}
+      <div style={{ marginBottom: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color }}>{label}</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5, opacity: 0.8 }}>
+        {reasoning}
       </div>
 
       {/* Progress bar */}
