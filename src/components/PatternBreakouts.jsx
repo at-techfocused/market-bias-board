@@ -36,64 +36,65 @@ function getPatternDescription(name) {
   return descriptions[name] || 'Candlestick pattern detected on recent price action.';
 }
 
-const TYPE_INFO = {
-  1: {
-    label: 'TYPE 1',
-    color: 'var(--green)',
-    bg: 'rgba(91,201,138,0.1)',
-    border: 'rgba(91,201,138,0.3)',
-    description: 'Type 1 patterns are high-reliability formations with strong historical follow-through. These include engulfing patterns, marubozu, three-candle reversals, and other multi-candle confirmations. They carry more weight in the bias score.',
-  },
-  2: {
-    label: 'TYPE 2',
-    color: 'var(--ema-200)',
-    bg: 'rgba(74,144,217,0.1)',
-    border: 'rgba(74,144,217,0.3)',
-    description: 'Type 2 patterns are moderate-reliability signals that benefit from additional confirmation. These include doji, harami, piercing lines, and single-candle reversal signals. Best used alongside other confluent indicators.',
-  },
+const TYPE_BADGE_STYLE = {
+  1: { color: 'var(--green)', bg: 'rgba(91,201,138,0.1)', border: 'rgba(91,201,138,0.3)' },
+  2: { color: 'var(--ema-200)', bg: 'rgba(74,144,217,0.1)', border: 'rgba(74,144,217,0.3)' },
 };
 
-function TypeBadge({ type }) {
-  const [showInfo, setShowInfo] = useState(false);
-  const info = TYPE_INFO[type] || TYPE_INFO[2];
+function TypeBadge({ type, onClick }) {
+  const s = TYPE_BADGE_STYLE[type] || TYPE_BADGE_STYLE[2];
   return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setShowInfo((v) => !v)}
-        className="px-2 py-[2px] rounded-[3px]"
-        style={{
-          fontSize: 10, fontWeight: 700, cursor: 'pointer',
-          color: info.color, background: info.bg, border: `1px solid ${info.border}`,
-        }}
-      >
-        {info.label}
-      </button>
-      {showInfo && (
-        <div style={{
-          position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
-          width: 260, padding: '10px 12px',
-          background: 'var(--bg-base)', border: '1px solid var(--border)',
-          borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: info.color }}>{info.label}</span>
-            <button
-              onClick={() => setShowInfo(false)}
-              style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              ×
-            </button>
-          </div>
-          <p style={{ fontSize: 11, lineHeight: 1.55, color: 'var(--text-body)', margin: 0 }}>
-            {info.description}
-          </p>
-        </div>
-      )}
+    <button
+      onClick={onClick}
+      className="px-2 py-[2px] rounded-[3px]"
+      style={{
+        fontSize: 10, fontWeight: 700, cursor: 'pointer',
+        color: s.color, background: s.bg, border: `1px solid ${s.border}`,
+      }}
+    >
+      TYPE {type}
+    </button>
+  );
+}
+
+function TypeInfoPanel({ onClose }) {
+  const t1 = TYPE_BADGE_STYLE[1];
+  const t2 = TYPE_BADGE_STYLE[2];
+  return (
+    <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border-inner)', background: 'rgba(15,25,35,0.6)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--text-body)' }}>PATTERN TYPES</span>
+        <button onClick={onClose}
+          style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer' }}>
+          ×
+        </button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <span className="px-1.5 py-[1px] rounded-[3px]"
+          style={{ fontSize: 9, fontWeight: 700, color: t1.color, background: t1.bg, border: `1px solid ${t1.border}` }}>
+          TYPE 1
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-body)' }}>High reliability</span>
+      </div>
+      <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--text-body)', opacity: 0.7, margin: '0 0 10px' }}>
+        Strong formations with historical follow-through. Includes engulfing, marubozu, three white soldiers, three black crows, morning/evening star, three inside up/down, and abandoned baby patterns. Carry more weight in the bias score.
+      </p>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <span className="px-1.5 py-[1px] rounded-[3px]"
+          style={{ fontSize: 9, fontWeight: 700, color: t2.color, background: t2.bg, border: `1px solid ${t2.border}` }}>
+          TYPE 2
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--text-body)' }}>Moderate reliability</span>
+      </div>
+      <p style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--text-body)', opacity: 0.7, margin: 0 }}>
+        Signals that benefit from additional confirmation. Includes doji, hammer, shooting star, harami, piercing line, dark cloud cover, and tweezer bottom patterns. Best used alongside other confluent indicators.
+      </p>
     </div>
   );
 }
 
 export default function PatternBreakouts({ signals, activeTf }) {
+  const [showTypeInfo, setShowTypeInfo] = useState(false);
   const active = signals?.[activeTf];
   const pattern = active?.pattern;
 
@@ -115,8 +116,11 @@ export default function PatternBreakouts({ signals, activeTf }) {
                 {pattern.name}
               </span>
             </div>
-            <TypeBadge type={pattern.type} />
+            <TypeBadge type={pattern.type} onClick={() => setShowTypeInfo((v) => !v)} />
           </div>
+
+          {/* Inline type info panel */}
+          {showTypeInfo && <TypeInfoPanel onClose={() => setShowTypeInfo(false)} />}
 
           {/* Description */}
           <div className="px-4 pb-3" style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5 }}>
