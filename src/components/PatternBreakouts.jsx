@@ -36,8 +36,8 @@ export default function PatternBreakouts({ signals, activeTf }) {
     <div>
       {!pattern ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-          <span style={{ fontSize: 9, letterSpacing: '.1em', color: '#c8d8e8' }}>PATTERN BREAKOUTS</span>
-          <span style={{ fontSize: 9, color: '#c8d8e8', opacity: 0.4 }}>None detected</span>
+          <span style={{ fontSize: 11, letterSpacing: '.1em', color: 'var(--text-body)' }}>PATTERN BREAKOUTS</span>
+          <span style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.4 }}>None detected</span>
         </div>
       ) : (
         <div className="rounded-[7px] overflow-hidden"

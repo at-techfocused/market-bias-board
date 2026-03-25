@@ -55,7 +55,7 @@ export default function SignalRows({ signals, activeTf }) {
               style={i < rows.length - 1 ? { borderBottom: '1px solid var(--border-inner)' } : undefined}>
               <div>
                 <div style={{ fontSize: 12, color: 'var(--text-body)', letterSpacing: '0.07em' }}>{row.name}</div>
-                <div style={{ fontSize: 9, color: '#c8d8e8', opacity: 0.6, marginTop: 2 }}>{row.detail}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.6, marginTop: 1 }}>{row.detail}</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-[6px] h-[6px] rounded-full" style={{ background: row.color }} />

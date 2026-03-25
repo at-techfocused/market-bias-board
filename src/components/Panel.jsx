@@ -110,6 +110,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
           <Card>
             <CollapsibleSection
               title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
+              badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
             >
               <HeroBlock signals={signals} activeTf={activeTf} />
             </CollapsibleSection>

@@ -119,34 +119,17 @@ export default function HeroBlock({ signals, activeTf }) {
   ];
 
   return (
-    <div>
-      {/* Hero score */}
-      <div style={{ textAlign: 'center', marginBottom: 10 }}>
-        <Tooltip content={scoreTooltip}>
-          <div style={{ fontSize: 52, fontFamily: "'Georgia', serif", fontWeight: 700, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-            {score}
-          </div>
-        </Tooltip>
-        <div style={{ fontSize: 11, color: 'var(--text-body)', marginTop: 4 }}>{label}</div>
-      </div>
-
-      {/* Progress bar */}
-      <div style={{ marginBottom: 12 }}>
-        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-          <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
-        </div>
-      </div>
-
-      {/* Metrics row: ADX, VOL */}
-      <div className="grid grid-cols-2 gap-2" style={{ marginBottom: 10 }}>
-        {metrics.filter(m => m.label !== 'SCORE').map((m) => (
+    <div style={{ padding: '4px 16px 14px' }}>
+      {/* Metrics row: SCORE, ADX, VOL */}
+      <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 10 }}>
+        {metrics.map((m) => (
           <Tooltip key={m.label} content={m.tip}>
             <div className="rounded-[7px] py-3 px-3 text-center"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
                 {m.label}
               </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: m.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+              <div style={{ fontSize: 24, fontWeight: 700, color: m.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {m.value}
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 4 }}>{m.sub}</div>
@@ -156,8 +139,15 @@ export default function HeroBlock({ signals, activeTf }) {
       </div>
 
       {/* Description */}
-      <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5 }}>
         {desc}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginTop: 10 }}>
+        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+          <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
+        </div>
       </div>
 
       {/* Conflict warning */}

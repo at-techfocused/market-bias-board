@@ -48,7 +48,7 @@ export default function EntryStopTarget({ signals, activeTf }) {
           borderTop: `${col.borderWidth}px solid ${col.borderColor}`,
           paddingTop: 10,
         }}>
-          <div style={{ fontSize: 9, color: '#c8d8e8', letterSpacing: '0.1em', marginBottom: 4 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', marginBottom: 4 }}>
             {col.label}
           </div>
           <div style={{
@@ -57,7 +57,7 @@ export default function EntryStopTarget({ signals, activeTf }) {
           }}>
             ${fmtPrice(col.price)}
           </div>
-          <div style={{ fontSize: 9, color: '#c8d8e8', opacity: 0.6 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6 }}>
             {col.sub}
           </div>
         </div>

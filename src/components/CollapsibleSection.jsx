@@ -17,7 +17,7 @@ export default function CollapsibleSection({ title, badge, defaultOpen = true, c
         }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 9, color: '#c8d8e8', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 0 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
             {title}
           </span>
           {badge}
