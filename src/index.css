@@ -34,9 +34,9 @@ body {
   display: none;
 }
 
-/* Desktop search bar width */
-.topbar-search {
-  width: 200px;
+/* Desktop search button */
+.topbar-search-btn {
+  width: auto;
 }
 
 /* Mobile responsive */
@@ -57,17 +57,24 @@ body {
     border: none !important;
   }
 
-  /* TopBar: compact layout */
-  .topbar-search {
-    width: 0;
-    flex: 1;
-    min-width: 100px;
+  /* TopBar: hide search label on small screens */
+  .topbar-search-btn {
+    font-size: 0 !important;
+    padding: 3px 6px !important;
+  }
+  .topbar-search-btn::before {
+    content: '🔍';
+    font-size: 11px;
   }
 
   /* Watchlist: horizontal scroll */
   .topbar-watchlist {
     -webkit-overflow-scrolling: touch;
     padding-bottom: 8px !important;
+  }
+
+  .topbar-row {
+    height: 32px !important;
   }
 
   /* Larger touch targets for collapsible section buttons */

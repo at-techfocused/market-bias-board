@@ -1,10 +1,10 @@
 export default function WatchlistChip({ ticker, active, onClick, onRemove }) {
   return (
     <div
-      className="flex items-center gap-1.5 rounded-[3px] cursor-pointer whitespace-nowrap transition-all relative group"
+      className="flex items-center gap-1 rounded-[3px] cursor-pointer whitespace-nowrap transition-all relative group"
       style={{
-        padding: '5px 11px',
-        fontSize: 11,
+        padding: '3px 8px',
+        fontSize: 10,
         fontWeight: 600,
         letterSpacing: '0.04em',
         background: active ? 'rgba(91,201,138,0.08)' : 'var(--bg-base)',
@@ -16,8 +16,8 @@ export default function WatchlistChip({ ticker, active, onClick, onRemove }) {
       {ticker}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ fontSize: 9, color: 'var(--text-body)', background: 'none', border: 'none', cursor: 'pointer' }}
+        className="ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ fontSize: 8, color: 'var(--text-body)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
       >
         ×
       </button>

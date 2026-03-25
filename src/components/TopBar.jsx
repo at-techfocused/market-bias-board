@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import WatchlistChip from './WatchlistChip';
+import TickerSearch from './TickerSearch';
 
 export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals }) {
-  const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -12,76 +13,79 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
     return () => clearInterval(id);
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const ticker = search.trim().toUpperCase();
-    if (ticker) {
-      onTickerChange(ticker);
-      setSearch('');
-    }
+  const handleSelect = (ticker) => {
+    onTickerChange(ticker);
+    onAddToWatchlist(ticker);
+    setSearchOpen(false);
   };
 
   const isInWatchlist = watchlist.includes(activeTicker);
 
   return (
     <div className="topbar" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
-      {/* Top row: logo, search, clock */}
-      <div className="flex items-center gap-3 px-4 py-2.5" style={{ minHeight: 44 }}>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-[7px] h-[7px] rounded-full animate-pulse"
-            style={{ background: 'var(--green)', boxShadow: '0 0 8px var(--green)' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+      {/* Single compact row: logo, search trigger, watchlist chips, clock */}
+      <div className="flex items-center gap-2 px-3 topbar-row" style={{ height: 36 }}>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="w-[6px] h-[6px] rounded-full animate-pulse"
+            style={{ background: 'var(--green)', boxShadow: '0 0 6px var(--green)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-primary)' }}>
             BIASBOARD
           </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="shrink-0 topbar-search">
-          <input
-            type="text"
-            placeholder="Search ticker..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              fontSize: 12,
-              padding: '7px 12px',
-              borderRadius: 4,
-              outline: 'none',
-              background: 'var(--bg-base)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontFamily: "'Inter', system-ui, sans-serif",
-            }}
-          />
-        </form>
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="topbar-search-btn"
+          style={{
+            fontSize: 11,
+            padding: '3px 10px',
+            borderRadius: 3,
+            background: 'var(--bg-base)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-body)',
+            opacity: 0.6,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            fontFamily: "'Inter', system-ui, sans-serif",
+          }}
+        >
+          Search ticker…
+        </button>
 
-        <div className="ml-auto shrink-0">
-          <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+        <div className="flex items-center gap-1 topbar-watchlist" style={{ flex: 1, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {watchlist.map((ticker) => (
+            <WatchlistChip
+              key={ticker}
+              ticker={ticker}
+              active={ticker === activeTicker}
+              signals={signals}
+              onClick={() => onTickerChange(ticker)}
+              onRemove={() => onRemoveFromWatchlist(ticker)}
+            />
+          ))}
+          {!isInWatchlist && (
+            <button onClick={() => onAddToWatchlist(activeTicker)}
+              style={{
+                fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap',
+                background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-body)',
+              }}>
+              + ADD
+            </button>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', opacity: 0.5, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
         </div>
       </div>
 
-      {/* Watchlist row */}
-      <div className="flex items-center gap-1.5 px-4 pb-2 topbar-watchlist" style={{ overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-        {watchlist.map((ticker) => (
-          <WatchlistChip
-            key={ticker}
-            ticker={ticker}
-            active={ticker === activeTicker}
-            signals={signals}
-            onClick={() => onTickerChange(ticker)}
-            onRemove={() => onRemoveFromWatchlist(ticker)}
-          />
-        ))}
-        {!isInWatchlist && (
-          <button onClick={() => onAddToWatchlist(activeTicker)}
-            style={{
-              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap',
-              background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-body)',
-            }}>
-            + ADD
-          </button>
-        )}
-      </div>
+      {searchOpen && (
+        <TickerSearch
+          onSelect={handleSelect}
+          onClose={() => setSearchOpen(false)}
+          watchlist={watchlist}
+        />
+      )}
     </div>
   );
 }
