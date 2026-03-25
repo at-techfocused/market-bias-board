@@ -52,7 +52,7 @@ export default function MetricsRow({ signals, activeTf }) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-2" style={{ padding: '0 16px 14px' }}>
+    <div className="grid grid-cols-3 gap-2">
       {cards.map((card) => (
         <Tooltip key={card.label} content={card.tip}>
           <div className="rounded-[7px] py-3 px-3 text-center"

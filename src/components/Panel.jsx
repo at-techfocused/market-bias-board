@@ -28,9 +28,12 @@ const ASSET_NAMES = {
 };
 
 const card = {
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border)',
+  background: '#0f1923',
+  border: '1px solid #1c2e3d',
   borderRadius: 10,
+  padding: '14px 16px',
+  marginBottom: 8,
+  overflow: 'hidden',
   flexShrink: 0,
 };
 
@@ -94,20 +97,19 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
 
   return (
     <div className="flex flex-col h-full"
-      style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
+      style={{ background: '#0a1218' }}>
       {/* Top bar + tabs: flush to top, outside card system */}
       <PanelTopBar ticker={tickerShort} name={displayName} signals={signals} activeTf={activeTf} />
       <TimeframeTabs signals={signals} activeTf={activeTf} onTfChange={onTfChange} />
 
       {/* Scrollable card stack */}
-      <div className="flex-1 overflow-y-auto"
-        style={{ padding: 8, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="flex-1 overflow-y-auto panel-scroll"
+        style={{ padding: 8, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
 
           <Card>
             <CollapsibleSection
               title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
-              badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
             >
               <HeroBlock signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
@@ -143,11 +145,17 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
             </CollapsibleSection>
           </Card>
 
-          <Card>
-            <CollapsibleSection title="PATTERN BREAKOUTS">
+          {active?.pattern ? (
+            <Card>
+              <CollapsibleSection title="PATTERN BREAKOUTS">
+                <PatternBreakouts signals={signals} activeTf={activeTf} />
+              </CollapsibleSection>
+            </Card>
+          ) : (
+            <div style={{ padding: '0 8px' }}>
               <PatternBreakouts signals={signals} activeTf={activeTf} />
-            </CollapsibleSection>
-          </Card>
+            </div>
+          )}
 
           <Card>
             <CollapsibleSection title={`SIGNAL CARDS · ${TF_DISPLAY[activeTf]}`}>

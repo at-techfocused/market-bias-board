@@ -61,7 +61,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="flex flex-col" style={{ height: '100dvh', background: '#060d13', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="flex flex-col" style={{ height: '100vh', background: '#060d13', boxSizing: 'border-box', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopBar
         activeTicker={activeTicker}
         watchlist={watchlist}
@@ -73,11 +73,11 @@ export default function App() {
       <div className="flex-1 flex app-layout" style={{ padding: 12, gap: 12, minHeight: 0 }}>
         {/* Chart card */}
         <div className="flex-1 flex flex-col overflow-hidden chart-card"
-          style={{ background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
+          style={{ borderRadius: 10, border: '1px solid #1c2e3d', overflow: 'hidden' }}>
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
         {/* Panel */}
-        <div className="panel-wrapper" style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
+        <div className="panel-wrapper" style={{ width: 420, minWidth: 420, flexShrink: 0, borderRadius: 10, border: '1px solid #1c2e3d', overflow: 'hidden' }}>
           <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
         </div>
       </div>

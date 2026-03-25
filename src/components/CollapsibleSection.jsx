@@ -9,7 +9,7 @@ export default function CollapsibleSection({ title, badge, defaultOpen = true, c
         onClick={() => setOpen(!open)}
         className="flex items-center justify-between w-full collapsible-btn"
         style={{
-          padding: '10px 16px 8px',
+          padding: '0 0 10px',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
@@ -17,7 +17,7 @@ export default function CollapsibleSection({ title, badge, defaultOpen = true, c
         }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: 11, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+          <span style={{ fontSize: 9, color: '#c8d8e8', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, display: 'block', marginBottom: 0 }}>
             {title}
           </span>
           {badge}

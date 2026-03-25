@@ -50,7 +50,7 @@ export default function SignalCardsGrid({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
+    <div>
       <div className="grid grid-cols-2 gap-2">
         {cards.map((card) => {
           const colorVal = card.raw !== undefined ? card.raw : card.value;

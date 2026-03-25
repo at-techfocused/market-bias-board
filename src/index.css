@@ -29,6 +29,11 @@ body {
   border-radius: 2px;
 }
 
+/* Hide panel scrollbar */
+.panel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* Desktop search bar width */
 .topbar-search {
   width: 200px;
@@ -48,6 +53,8 @@ body {
     width: 100% !important;
     min-width: 0 !important;
     flex: 1 !important;
+    border-radius: 0 !important;
+    border: none !important;
   }
 
   /* TopBar: compact layout */

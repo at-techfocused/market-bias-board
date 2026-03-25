@@ -33,16 +33,15 @@ export default function PatternBreakouts({ signals, activeTf }) {
   const pattern = active?.pattern;
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
+    <div>
       {!pattern ? (
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-[7px]"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 12, color: 'var(--text-body)' }}>Patterns</span>
-          <span style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.6 }}>None detected</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
+          <span style={{ fontSize: 9, letterSpacing: '.1em', color: '#c8d8e8' }}>PATTERN BREAKOUTS</span>
+          <span style={{ fontSize: 9, color: '#c8d8e8', opacity: 0.4 }}>None detected</span>
         </div>
       ) : (
         <div className="rounded-[7px] overflow-hidden"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: `3px solid ${getSignalColor(pattern.direction)}` }}>
+          style={{ background: '#0a1218', border: '1px solid var(--border)', borderLeft: `3px solid ${getSignalColor(pattern.direction)}` }}>
           {/* Header row */}
           <div className="flex items-center justify-between px-4 pt-3.5 pb-1">
             <div className="flex items-center gap-2.5">

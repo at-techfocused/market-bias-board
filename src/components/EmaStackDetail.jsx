@@ -17,7 +17,7 @@ export default function EmaStackDetail({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
+    <div>
       <div className="flex flex-col gap-2.5">
         {rows.map((row) => {
           const above = row.value != null && close > row.value;

@@ -16,97 +16,52 @@ export default function EntryStopTarget({ signals, activeTf }) {
   const targetPct = Math.abs((target - entry) / entry * 100);
   const rr = stopPct > 0 ? (targetPct / stopPct) : null;
 
-  // Sort highest price on top
-  const levels = [
-    { label: 'STOP', price: stop, color: 'var(--red)' },
-    { label: 'ENTRY', price: entry, color: 'var(--text-primary)' },
-    { label: 'TARGET', price: target, color: 'var(--green)' },
-  ].sort((a, b) => b.price - a.price);
-
-  const range = Math.max(...levels.map(l => l.price)) - Math.min(...levels.map(l => l.price));
+  const columns = [
+    {
+      label: 'ENTRY',
+      price: entry,
+      borderColor: '#1c2e3d',
+      borderWidth: 1,
+      sub: `${isBull ? 'LONG' : 'SHORT'} · R:R ${rr != null ? rr.toFixed(1) : '--'}:1`,
+    },
+    {
+      label: 'STOP',
+      price: stop,
+      borderColor: '#e05555',
+      borderWidth: 2,
+      sub: `-${stopPct.toFixed(1)}% · ${(atr * 1.5).toFixed(2)} ATR`,
+    },
+    {
+      label: 'TARGET',
+      price: target,
+      borderColor: '#5bc98a',
+      borderWidth: 2,
+      sub: `+${targetPct.toFixed(1)}% · ${(atr * 3).toFixed(2)} ATR`,
+    },
+  ];
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-body)', letterSpacing: '0.1em' }}>
-          SETUP
-        </span>
-        <span style={{
-          fontSize: 10, fontWeight: 700,
-          color: isBull ? 'var(--green)' : 'var(--red)',
-          letterSpacing: '0.05em',
+    <div style={{ display: 'flex', gap: 8 }}>
+      {columns.map((col) => (
+        <div key={col.label} style={{
+          flex: 1,
+          borderTop: `${col.borderWidth}px solid ${col.borderColor}`,
+          paddingTop: 10,
         }}>
-          {isBull ? 'LONG' : 'SHORT'} · R:R {rr != null ? rr.toFixed(1) : '--'}:1
-        </span>
-      </div>
-
-      {/* Price levels ladder */}
-      <div className="rounded-[7px] overflow-hidden"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-        <div style={{ padding: '10px 12px' }}>
-          {levels.map((level, i) => {
-            const isBottom = i === levels.length - 1;
-            const nextLevel = levels[i + 1];
-
-            // Determine zone type between this and next level
-            let isProfit = false;
-            if (!isBottom && nextLevel) {
-              isProfit = (
-                (level.label === 'TARGET' && nextLevel.label === 'ENTRY') ||
-                (level.label === 'ENTRY' && nextLevel.label === 'TARGET')
-              );
-            }
-            const zoneColor = isProfit ? 'var(--green)' : 'var(--red)';
-            const zoneBg = isProfit ? 'rgba(91,201,138,0.08)' : 'rgba(224,85,85,0.08)';
-            const zoneBorder = isProfit ? 'rgba(91,201,138,0.25)' : 'rgba(224,85,85,0.25)';
-            const zoneText = isProfit ? 'rgba(91,201,138,0.6)' : 'rgba(224,85,85,0.6)';
-            const zonePct = isProfit ? targetPct : stopPct;
-            const gapPx = !isBottom && nextLevel
-              ? Math.max(((level.price - nextLevel.price) / range) * 44, 14)
-              : 0;
-
-            return (
-              <div key={level.label}>
-                {/* Level row */}
-                <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 10, fontWeight: 700, color: level.color, letterSpacing: '0.06em', width: 50 }}>
-                    {level.label}
-                  </span>
-                  <div style={{ flex: 1, height: 1, background: level.color, opacity: 0.4 }} />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: level.color, fontVariantNumeric: 'tabular-nums' }}>
-                    ${fmtPrice(level.price)}
-                  </span>
-                </div>
-
-                {/* Shaded zone between levels */}
-                {!isBottom && (
-                  <div style={{
-                    height: gapPx,
-                    marginLeft: 4,
-                    marginRight: 4,
-                    background: zoneBg,
-                    borderLeft: `1px dashed ${zoneBorder}`,
-                    borderRight: `1px dashed ${zoneBorder}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <span style={{
-                      fontSize: 9,
-                      fontWeight: 600,
-                      color: zoneText,
-                      letterSpacing: '0.03em',
-                    }}>
-                      {isProfit ? '+' : '-'}{zonePct.toFixed(1)}%
-                    </span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          <div style={{ fontSize: 9, color: '#c8d8e8', letterSpacing: '0.1em', marginBottom: 4 }}>
+            {col.label}
+          </div>
+          <div style={{
+            fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+            fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 4,
+          }}>
+            ${fmtPrice(col.price)}
+          </div>
+          <div style={{ fontSize: 9, color: '#c8d8e8', opacity: 0.6 }}>
+            {col.sub}
+          </div>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
