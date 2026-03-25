@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { fmtPrice } from '../utils/format';
 
 function getSignalColor(dir) {
@@ -35,16 +36,60 @@ function getPatternDescription(name) {
   return descriptions[name] || 'Candlestick pattern detected on recent price action.';
 }
 
+const TYPE_INFO = {
+  1: {
+    label: 'TYPE 1',
+    color: 'var(--green)',
+    bg: 'rgba(91,201,138,0.1)',
+    border: 'rgba(91,201,138,0.3)',
+    description: 'Type 1 patterns are high-reliability formations with strong historical follow-through. These include engulfing patterns, marubozu, three-candle reversals, and other multi-candle confirmations. They carry more weight in the bias score.',
+  },
+  2: {
+    label: 'TYPE 2',
+    color: 'var(--ema-200)',
+    bg: 'rgba(74,144,217,0.1)',
+    border: 'rgba(74,144,217,0.3)',
+    description: 'Type 2 patterns are moderate-reliability signals that benefit from additional confirmation. These include doji, harami, piercing lines, and single-candle reversal signals. Best used alongside other confluent indicators.',
+  },
+};
+
 function TypeBadge({ type }) {
-  const isType1 = type === 1;
-  const color = isType1 ? 'var(--green)' : 'var(--ema-200)';
-  const bg = isType1 ? 'rgba(91,201,138,0.1)' : 'rgba(74,144,217,0.1)';
-  const border = isType1 ? 'rgba(91,201,138,0.3)' : 'rgba(74,144,217,0.3)';
+  const [showInfo, setShowInfo] = useState(false);
+  const info = TYPE_INFO[type] || TYPE_INFO[2];
   return (
-    <span className="px-2 py-[2px] rounded-[3px]"
-      style={{ fontSize: 10, fontWeight: 700, color, background: bg, border: `1px solid ${border}` }}>
-      TYPE {type}
-    </span>
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setShowInfo((v) => !v)}
+        className="px-2 py-[2px] rounded-[3px]"
+        style={{
+          fontSize: 10, fontWeight: 700, cursor: 'pointer',
+          color: info.color, background: info.bg, border: `1px solid ${info.border}`,
+        }}
+      >
+        {info.label}
+      </button>
+      {showInfo && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
+          width: 260, padding: '10px 12px',
+          background: 'var(--bg-base)', border: '1px solid var(--border)',
+          borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: info.color }}>{info.label}</span>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.4, background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ fontSize: 11, lineHeight: 1.55, color: 'var(--text-body)', margin: 0 }}>
+            {info.description}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
