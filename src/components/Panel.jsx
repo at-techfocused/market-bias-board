@@ -1,7 +1,6 @@
 import PanelTopBar from './PanelTopBar';
 import TimeframeTabs from './TimeframeTabs';
 import HeroBlock from './HeroBlock';
-import ConflictBadge from './ConflictBadge';
 import EntryStopTarget from './EntryStopTarget';
 
 import SignalRows from './SignalRows';
@@ -90,11 +89,6 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
     );
   }
 
-  const h4Score = signals?.['4H']?.score;
-  const dScore = signals?.D?.score;
-  const hasConflict = h4Score != null && dScore != null &&
-    ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
-
   const biasLabel = active ? getBiasLabel(active.score) : '';
   const biasColor = active ? getBiasColor(active.score) : '';
 
@@ -118,8 +112,6 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
               <HeroBlock signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
           </Card>
-
-          {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
 
           <Card>
             <CollapsibleSection title={`ENTRY / STOP / TARGET`}>

@@ -1,4 +1,4 @@
-import { TF_KEYS, TF_DISPLAY, getBiasLabel } from '../utils/format';
+import { TF_DISPLAY } from '../utils/format';
 import Tooltip from './Tooltip';
 
 function getActionLabel(score, hasConflict) {
@@ -83,12 +83,6 @@ export default function HeroBlock({ signals, activeTf }) {
   const color = getSignalColor(score);
   const breakdown = getBreakdown(active);
 
-  const allScores = TF_KEYS.map((t) => signals?.[t]?.score).filter((s) => s != null);
-  let agreement = 100;
-  if (allScores.length >= 2) {
-    agreement = Math.max(0, Math.round(100 - (Math.max(...allScores) - Math.min(...allScores))));
-  }
-
   const scoreTooltip = (
     <div>
       <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Score Breakdown — {TF_DISPLAY[activeTf]}</div>
@@ -103,22 +97,6 @@ export default function HeroBlock({ signals, activeTf }) {
       <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 6, paddingTop: 6, fontWeight: 700, color: 'var(--text-primary)' }}>
         Total: {score}/100
       </div>
-    </div>
-  );
-
-  const agreementTooltip = (
-    <div>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Timeframe Agreement</div>
-      <div style={{ marginBottom: 6 }}>How aligned all timeframes are. 100% = full agreement.</div>
-      {TF_KEYS.map((t) => {
-        const s = signals?.[t]?.score;
-        return s != null ? (
-          <div key={t} className="flex items-center justify-between" style={{ padding: '2px 0' }}>
-            <span>{TF_DISPLAY[t]}</span>
-            <span style={{ fontWeight: 600, color: getSignalColor(s) }}>{s}/100 — {getBiasLabel(s)}</span>
-          </div>
-        ) : null;
-      })}
     </div>
   );
 
@@ -165,17 +143,26 @@ export default function HeroBlock({ signals, activeTf }) {
         {desc}
       </div>
 
-      {/* Progress bar + agreement */}
-      <div className="flex items-center gap-3" style={{ marginTop: 10 }}>
-        <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+      {/* Progress bar */}
+      <div style={{ marginTop: 10 }}>
+        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
-        <Tooltip content={agreementTooltip}>
-          <span style={{ fontSize: 10, color: 'var(--text-body)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-            {agreement}% TF agreement
-          </span>
-        </Tooltip>
       </div>
+
+      {/* Conflict warning */}
+      {hasConflict && (() => {
+        const h4Side = h4Score >= 50 ? 'bullish' : 'bearish';
+        const dSide = dScore >= 50 ? 'bullish' : 'bearish';
+        return (
+          <div className="flex items-start gap-2" style={{ marginTop: 10 }}>
+            <span style={{ color: 'var(--amber)', fontSize: 14, lineHeight: 1 }}>!</span>
+            <span style={{ fontSize: 11, color: 'var(--text-body)', lineHeight: 1.5 }}>
+              Conflict — 4H {h4Side}, Daily {dSide}. Await resolution before sizing in.
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
