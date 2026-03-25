@@ -6,13 +6,33 @@ function getSignalColor(dir) {
   return 'var(--amber)';
 }
 
-function getPatternDescription(name, direction) {
+function getPatternDescription(name) {
   const descriptions = {
-    'Doji': 'Indecision candle — open and close nearly equal. Neither buyers nor sellers in control. Often signals a potential reversal when appearing after a strong trend.',
-    'Bullish Marubozu': 'Strong bullish candle with little to no wicks. Buyers dominated the entire session from open to close, showing high conviction and momentum.',
-    'Bear Marubozu': 'Strong bearish candle with little to no wicks. Sellers dominated the entire session from open to close, showing high conviction and momentum.',
+    // Single-candle
+    'Doji': 'Indecision candle — open and close nearly equal. Neither buyers nor sellers in control. Often signals a potential reversal after a strong trend.',
+    'Bullish Marubozu': 'Strong bullish candle with little to no wicks. Buyers dominated the entire session from open to close, showing high conviction.',
+    'Bear Marubozu': 'Strong bearish candle with little to no wicks. Sellers dominated the entire session from open to close, showing high conviction.',
+    'Hammer': 'Small body near the top with a long lower wick. Sellers pushed price down but buyers reclaimed — potential bullish reversal signal.',
+    'Shooting Star': 'Small body near the bottom with a long upper wick. Buyers pushed price up but sellers rejected — potential bearish reversal signal.',
+    // Two-candle
+    'Bullish Engulfing': 'Green candle fully engulfs the prior red candle body. Strong shift from selling to buying pressure — high-conviction bullish reversal.',
+    'Bearish Engulfing': 'Red candle fully engulfs the prior green candle body. Strong shift from buying to selling pressure — high-conviction bearish reversal.',
+    'Piercing Line': 'Opens below prior low, closes above the midpoint of the prior red candle. Buyers stepping in — moderate bullish reversal signal.',
+    'Dark Cloud Cover': 'Opens above prior high, closes below the midpoint of the prior green candle. Sellers stepping in — moderate bearish reversal signal.',
+    'Bullish Harami': 'Small green candle contained within the prior large red candle body. Selling pressure pausing — potential bullish reversal, needs confirmation.',
+    'Bearish Harami': 'Small red candle contained within the prior large green candle body. Buying pressure pausing — potential bearish reversal, needs confirmation.',
+    'Tweezer Bottom': 'Two candles with nearly equal lows, second closes bullish. Double support test — moderate bullish reversal signal.',
+    // Three-candle
+    'Three White Soldiers': 'Three consecutive strong green candles, each closing higher. Sustained buying pressure — high-conviction bullish continuation.',
+    'Three Black Crows': 'Three consecutive strong red candles, each closing lower. Sustained selling pressure — high-conviction bearish continuation.',
+    'Morning Star': 'Red candle, small indecision body, then strong green candle closing above the first candle midpoint. Classic bullish reversal.',
+    'Evening Star': 'Green candle, small indecision body, then strong red candle closing below the first candle midpoint. Classic bearish reversal.',
+    'Three Inside Up': 'Bearish harami confirmed by a third green candle closing above the first candle high. Strong bullish reversal with follow-through.',
+    'Three Inside Down': 'Bullish harami confirmed by a third red candle closing below the first candle low. Strong bearish reversal with follow-through.',
+    'Bullish Abandoned Baby': 'Red candle, doji that gaps below, green candle that gaps above. Rare but very high reliability bullish reversal.',
+    'Bearish Abandoned Baby': 'Green candle, doji that gaps above, red candle that gaps below. Rare but very high reliability bearish reversal.',
   };
-  return descriptions[name] || `${direction === 'BULL' ? 'Bullish' : direction === 'BEAR' ? 'Bearish' : 'Neutral'} candlestick pattern detected on recent price action.`;
+  return descriptions[name] || 'Candlestick pattern detected on recent price action.';
 }
 
 function TypeBadge({ type }) {
@@ -55,7 +75,7 @@ export default function PatternBreakouts({ signals, activeTf }) {
 
           {/* Description */}
           <div className="px-4 pb-3" style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5 }}>
-            {getPatternDescription(pattern.name, pattern.direction)}
+            {getPatternDescription(pattern.name)}
           </div>
 
           {/* Stats row */}

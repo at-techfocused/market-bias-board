@@ -159,24 +159,198 @@ function getMACDDirection(macdData) {
   return 'NEUTRAL';
 }
 
-// ── Pattern Detection ──
+// ── Pattern Detection (20 candlestick patterns) ──
+// Helpers
+function candleBody(c) { return Math.abs(c.c - c.o); }
+function candleRange(c) { return c.h - c.l; }
+function isGreen(c) { return c.c > c.o; }
+function isRed(c) { return c.c <= c.o; }
+function bodyTop(c) { return Math.max(c.c, c.o); }
+function bodyBot(c) { return Math.min(c.c, c.o); }
+function upperWick(c) { return c.h - bodyTop(c); }
+function lowerWick(c) { return bodyBot(c) - c.l; }
+function bodyRatio(c) { const r = candleRange(c); return r === 0 ? 0 : candleBody(c) / r; }
+function bodyMid(c) { return (bodyTop(c) + bodyBot(c)) / 2; }
+function pctStr(c) { return (bodyRatio(c) * 100).toFixed(1); }
+
 function detectPattern(candles) {
   const len = candles.length;
-  for (let i = len - 1; i >= Math.max(0, len - 3); i--) {
-    const { o, h, l, c } = candles[i];
-    const range = h - l;
-    if (range === 0) continue;
-    const bodyRatio = Math.abs(c - o) / range;
-    if (bodyRatio < 0.10) {
-      return { name: 'Doji', direction: 'NEUTRAL', symbol: '\u25C6', type: 2, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
+  if (len < 3) return null;
+
+  const c0 = candles[len - 1]; // most recent
+  const c1 = candles[len - 2]; // prior
+  const c2 = candles[len - 3]; // two back
+  const r0 = candleRange(c0);
+  const r1 = candleRange(c1);
+  const r2 = candleRange(c2);
+
+  // ── Three-candle patterns (highest priority) ──
+
+  // Three White Soldiers: 3 consecutive green candles, each closing higher, each opening within prior body
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isGreen(c2) && isGreen(c1) && isGreen(c0) &&
+      c1.c > c2.c && c0.c > c1.c &&
+      c1.o >= bodyBot(c2) && c1.o <= bodyTop(c2) &&
+      c0.o >= bodyBot(c1) && c0.o <= bodyTop(c1) &&
+      bodyRatio(c2) > 0.4 && bodyRatio(c1) > 0.4 && bodyRatio(c0) > 0.4) {
+    return { name: 'Three White Soldiers', direction: 'BULL', symbol: '\u25B2\u25B2\u25B2', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Three Black Crows: 3 consecutive red candles, each closing lower, each opening within prior body
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isRed(c2) && isRed(c1) && isRed(c0) &&
+      c1.c < c2.c && c0.c < c1.c &&
+      c1.o <= bodyTop(c2) && c1.o >= bodyBot(c2) &&
+      c0.o <= bodyTop(c1) && c0.o >= bodyBot(c1) &&
+      bodyRatio(c2) > 0.4 && bodyRatio(c1) > 0.4 && bodyRatio(c0) > 0.4) {
+    return { name: 'Three Black Crows', direction: 'BEAR', symbol: '\u25BC\u25BC\u25BC', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Morning Star: red → small body → green closing above midpoint of first
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isRed(c2) && bodyRatio(c2) > 0.4 &&
+      bodyRatio(c1) < 0.3 &&
+      isGreen(c0) && bodyRatio(c0) > 0.4 &&
+      c0.c > bodyMid(c2)) {
+    return { name: 'Morning Star', direction: 'BULL', symbol: '\u2606', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Evening Star: green → small body → red closing below midpoint of first
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isGreen(c2) && bodyRatio(c2) > 0.4 &&
+      bodyRatio(c1) < 0.3 &&
+      isRed(c0) && bodyRatio(c0) > 0.4 &&
+      c0.c < bodyMid(c2)) {
+    return { name: 'Evening Star', direction: 'BEAR', symbol: '\u2605', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Three Inside Up: bearish harami (large red → small green inside) → green close above first candle's high
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isRed(c2) && bodyRatio(c2) > 0.4 &&
+      isGreen(c1) && candleBody(c1) < candleBody(c2) &&
+      bodyTop(c1) <= bodyTop(c2) && bodyBot(c1) >= bodyBot(c2) &&
+      isGreen(c0) && c0.c > c2.h) {
+    return { name: 'Three Inside Up', direction: 'BULL', symbol: '\u25B3', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Three Inside Down: bullish harami (large green → small red inside) → red close below first candle's low
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isGreen(c2) && bodyRatio(c2) > 0.4 &&
+      isRed(c1) && candleBody(c1) < candleBody(c2) &&
+      bodyTop(c1) <= bodyTop(c2) && bodyBot(c1) >= bodyBot(c2) &&
+      isRed(c0) && c0.c < c2.l) {
+    return { name: 'Three Inside Down', direction: 'BEAR', symbol: '\u25BD', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Bullish Abandoned Baby: red → doji gaps below → green gaps above
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isRed(c2) && bodyRatio(c2) > 0.4 &&
+      bodyRatio(c1) < 0.10 &&
+      c1.h < c2.l && c0.l > c1.h &&
+      isGreen(c0)) {
+    return { name: 'Bullish Abandoned Baby', direction: 'BULL', symbol: '\u2740', type: 1, bodyPct: pctStr(c1), price: c0.c };
+  }
+
+  // Bearish Abandoned Baby: green → doji gaps above → red gaps below
+  if (r0 > 0 && r1 > 0 && r2 > 0 &&
+      isGreen(c2) && bodyRatio(c2) > 0.4 &&
+      bodyRatio(c1) < 0.10 &&
+      c1.l > c2.h && c0.h < c1.l &&
+      isRed(c0)) {
+    return { name: 'Bearish Abandoned Baby', direction: 'BEAR', symbol: '\u2740', type: 1, bodyPct: pctStr(c1), price: c0.c };
+  }
+
+  // ── Two-candle patterns ──
+
+  // Bullish Engulfing: red candle → green candle whose body fully engulfs prior body
+  if (r0 > 0 && r1 > 0 &&
+      isRed(c1) && isGreen(c0) &&
+      bodyBot(c0) < bodyBot(c1) && bodyTop(c0) > bodyTop(c1) &&
+      bodyRatio(c0) > 0.4) {
+    return { name: 'Bullish Engulfing', direction: 'BULL', symbol: '\u25B2', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Bearish Engulfing: green candle → red candle whose body fully engulfs prior body
+  if (r0 > 0 && r1 > 0 &&
+      isGreen(c1) && isRed(c0) &&
+      bodyBot(c0) < bodyBot(c1) && bodyTop(c0) > bodyTop(c1) &&
+      bodyRatio(c0) > 0.4) {
+    return { name: 'Bearish Engulfing', direction: 'BEAR', symbol: '\u25BC', type: 1, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Piercing Line: red candle → green candle opens below prior low, closes above prior midpoint
+  if (r0 > 0 && r1 > 0 &&
+      isRed(c1) && bodyRatio(c1) > 0.4 &&
+      isGreen(c0) && c0.o < c1.l && c0.c > bodyMid(c1) && c0.c < bodyTop(c1)) {
+    return { name: 'Piercing Line', direction: 'BULL', symbol: '\u2197', type: 2, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Dark Cloud Cover: green candle → red candle opens above prior high, closes below prior midpoint
+  if (r0 > 0 && r1 > 0 &&
+      isGreen(c1) && bodyRatio(c1) > 0.4 &&
+      isRed(c0) && c0.o > c1.h && c0.c < bodyMid(c1) && c0.c > bodyBot(c1)) {
+    return { name: 'Dark Cloud Cover', direction: 'BEAR', symbol: '\u2198', type: 2, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Bullish Harami: large red candle → small green candle contained within prior body
+  if (r0 > 0 && r1 > 0 &&
+      isRed(c1) && bodyRatio(c1) > 0.5 &&
+      isGreen(c0) && candleBody(c0) < candleBody(c1) * 0.6 &&
+      bodyTop(c0) <= bodyTop(c1) && bodyBot(c0) >= bodyBot(c1)) {
+    return { name: 'Bullish Harami', direction: 'BULL', symbol: '\u25CB', type: 2, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Bearish Harami: large green candle → small red candle contained within prior body
+  if (r0 > 0 && r1 > 0 &&
+      isGreen(c1) && bodyRatio(c1) > 0.5 &&
+      isRed(c0) && candleBody(c0) < candleBody(c1) * 0.6 &&
+      bodyTop(c0) <= bodyTop(c1) && bodyBot(c0) >= bodyBot(c1)) {
+    return { name: 'Bearish Harami', direction: 'BEAR', symbol: '\u25CF', type: 2, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // Tweezer Bottom: two candles with nearly equal lows, second closes green
+  if (r0 > 0 && r1 > 0 &&
+      isRed(c1) && isGreen(c0) &&
+      Math.abs(c1.l - c0.l) / r1 < 0.05 &&
+      bodyRatio(c0) > 0.3 && bodyRatio(c1) > 0.3) {
+    return { name: 'Tweezer Bottom', direction: 'BULL', symbol: '\u2AE1', type: 2, bodyPct: pctStr(c0), price: c0.c };
+  }
+
+  // ── Single-candle patterns ──
+  const body0 = candleBody(c0);
+  const br0 = bodyRatio(c0);
+
+  if (r0 > 0) {
+    // Hammer: small body at top, lower wick >= 2x body, upper wick minimal
+    if (br0 > 0.10 && br0 < 0.40 &&
+        lowerWick(c0) >= body0 * 2 &&
+        upperWick(c0) <= body0 * 0.5) {
+      return { name: 'Hammer', direction: 'BULL', symbol: '\u{1F528}', type: 2, bodyPct: pctStr(c0), price: c0.c };
     }
-    if (bodyRatio > 0.90) {
-      const dir = c > o ? 'BULL' : 'BEAR';
-      const name = c > o ? 'Bullish Marubozu' : 'Bear Marubozu';
-      const symbol = c > o ? '\u25B2' : '\u25BC';
-      return { name, direction: dir, symbol, type: 1, bodyPct: (bodyRatio * 100).toFixed(1), price: c };
+
+    // Shooting Star: small body at bottom, upper wick >= 2x body, lower wick minimal
+    if (br0 > 0.10 && br0 < 0.40 &&
+        upperWick(c0) >= body0 * 2 &&
+        lowerWick(c0) <= body0 * 0.5) {
+      return { name: 'Shooting Star', direction: 'BEAR', symbol: '\u2604', type: 2, bodyPct: pctStr(c0), price: c0.c };
+    }
+
+    // Bullish Marubozu: body > 90%, green
+    if (br0 > 0.90 && isGreen(c0)) {
+      return { name: 'Bullish Marubozu', direction: 'BULL', symbol: '\u25B2', type: 1, bodyPct: pctStr(c0), price: c0.c };
+    }
+
+    // Bear Marubozu: body > 90%, red
+    if (br0 > 0.90 && isRed(c0)) {
+      return { name: 'Bear Marubozu', direction: 'BEAR', symbol: '\u25BC', type: 1, bodyPct: pctStr(c0), price: c0.c };
+    }
+
+    // Doji: body < 10%
+    if (br0 < 0.10) {
+      return { name: 'Doji', direction: 'NEUTRAL', symbol: '\u25C6', type: 2, bodyPct: pctStr(c0), price: c0.c };
     }
   }
+
   return null;
 }
 
