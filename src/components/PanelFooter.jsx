@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import { TF_DISPLAY } from '../utils/format';
 
-export default function PanelFooter({ signals, activeTf }) {
-  const [time, setTime] = useState('');
+function timeAgo(date) {
+  if (!date) return '';
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  return `${mins}m ago`;
+}
+
+export default function PanelFooter({ signals, activeTf, lastFetch, isStale }) {
+  const [, setTick] = useState(0);
 
   useEffect(() => {
-    const update = () => setTime(new Date().toISOString().slice(11, 19) + ' UTC');
-    update();
-    const id = setInterval(update, 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 10_000);
     return () => clearInterval(id);
   }, []);
 
@@ -27,8 +33,13 @@ export default function PanelFooter({ signals, activeTf }) {
       <span style={{ fontSize: 10, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
         R:R {rr != null ? `${rr.toFixed(1)}:1` : '--'} · {TF_DISPLAY[activeTf]} · 1.5× ATR stop
       </span>
-      <span style={{ fontSize: 10, color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>
-        {time}
+      <span style={{ fontSize: 10, fontVariantNumeric: 'tabular-nums', display: 'flex', alignItems: 'center', gap: 4 }}>
+        {isStale && (
+          <span style={{ color: 'var(--amber)', fontWeight: 700 }} title="Data may be outdated">STALE</span>
+        )}
+        <span style={{ color: isStale ? 'var(--amber)' : 'var(--text-body)' }}>
+          {lastFetch ? timeAgo(lastFetch) : '--'}
+        </span>
       </span>
     </div>
   );

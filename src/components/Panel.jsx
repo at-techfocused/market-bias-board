@@ -49,7 +49,7 @@ function SmmaBadge({ position }) {
   );
 }
 
-export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTfChange }) {
+export default function Panel({ signals, data, lastFetch, isStale, scoreHistory, ticker, activeTf, onTfChange }) {
   const active = signals?.[activeTf];
   const isLoading = data?.['1H']?.loading || data?.['4H']?.loading || data?.D?.loading;
   const allErrors = TF_KEYS.every((tf) => data?.[tf]?.error && !data?.[tf]?.loading);
@@ -101,7 +101,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
               title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
               badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
             >
-              <HeroBlock signals={signals} activeTf={activeTf} tickerName={displayName} tickerShort={tickerShort} />
+              <HeroBlock signals={signals} activeTf={activeTf} tickerName={displayName} tickerShort={tickerShort} scoreHistory={scoreHistory} />
             </CollapsibleSection>
           </Card>
 
@@ -156,7 +156,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
         </div>
       </div>
 
-      <PanelFooter signals={signals} activeTf={activeTf} />
+      <PanelFooter signals={signals} activeTf={activeTf} lastFetch={lastFetch} isStale={isStale} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { TF_DISPLAY, getScoreColor } from '../utils/format';
 import { applyConflictPenalty } from '../utils/indicators';
 import Tooltip from './Tooltip';
+import Sparkline from './Sparkline';
 
 function getActionLabel(score, hasConflict) {
   if (hasConflict) {
@@ -103,7 +104,7 @@ function getBreakdown(signals) {
   return rows;
 }
 
-export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }) {
+export default function HeroBlock({ signals, activeTf, tickerName, tickerShort, scoreHistory }) {
   const active = signals?.[activeTf];
   if (!active) return null;
 
@@ -166,11 +167,14 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }
     </div>
   );
 
+  const sparkPoints = scoreHistory?.[activeTf] || [];
+
   const metrics = [
     {
       label: 'SCORE', value: score, color: getSignalColor(score),
       sub: `/ 100 · ${TF_DISPLAY[activeTf]}`,
       tip: scoreTooltip,
+      sparkline: sparkPoints,
     },
     {
       label: 'ADX', value: active.adx ?? '--', color: 'var(--text-body)',
@@ -208,6 +212,11 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }
                 {m.value}
               </div>
               <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 4 }}>{m.sub}</div>
+              {m.sparkline?.length >= 2 && (
+                <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
+                  <Sparkline points={m.sparkline} width={64} height={20} />
+                </div>
+              )}
             </div>
           </Tooltip>
         ))}
