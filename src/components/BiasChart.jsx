@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react';
-import { createChart, ColorType, LineStyle } from 'lightweight-charts';
+import { createChart, CandlestickSeries, HistogramSeries, ColorType, LineStyle } from 'lightweight-charts';
 
 const CHART_BG = '#080c10';
 const GRID_COLOR = 'rgba(28,46,61,0.4)';
@@ -85,7 +85,8 @@ export default function BiasChart({ candles, signals, activeTf }) {
       handleScale: { mouseWheel: true, pinch: true },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    // v5 API: chart.addSeries(SeriesDefinition, options)
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: UP_COLOR,
       downColor: DOWN_COLOR,
       borderUpColor: UP_COLOR,
@@ -94,7 +95,7 @@ export default function BiasChart({ candles, signals, activeTf }) {
       wickDownColor: DOWN_COLOR,
     });
 
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
     });
