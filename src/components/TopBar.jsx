@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WatchlistChip from './WatchlistChip';
 import TickerSearch from './TickerSearch';
 
-export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals }) {
+export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals, onCompare }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState('');
 
@@ -51,6 +51,20 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
         >
           Search ticker…
         </button>
+
+        {onCompare && (
+          <button
+            onClick={onCompare}
+            className="topbar-compare-btn"
+            style={{
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 3, cursor: 'pointer',
+              whiteSpace: 'nowrap', letterSpacing: '0.04em',
+              background: 'rgba(42,184,184,0.08)', border: '1px solid rgba(42,184,184,0.3)', color: '#2ab8b8',
+            }}
+          >
+            COMPARE
+          </button>
+        )}
 
         <div className="flex items-center gap-1 topbar-watchlist" style={{ flex: 1, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
           {watchlist.map((ticker) => (

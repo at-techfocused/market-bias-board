@@ -49,7 +49,7 @@ function SmmaBadge({ position }) {
   );
 }
 
-export default function Panel({ signals, data, lastFetch, isStale, scoreHistory, ticker, activeTf, onTfChange }) {
+export default function Panel({ signals, data, lastFetch, isStale, scoreHistory, ticker, activeTf, onTfChange, onOpenWeights, weights }) {
   const active = signals?.[activeTf];
   const isLoading = data?.['1H']?.loading || data?.['4H']?.loading || data?.D?.loading;
   const allErrors = TF_KEYS.every((tf) => data?.[tf]?.error && !data?.[tf]?.loading);
@@ -156,7 +156,7 @@ export default function Panel({ signals, data, lastFetch, isStale, scoreHistory,
         </div>
       </div>
 
-      <PanelFooter signals={signals} activeTf={activeTf} lastFetch={lastFetch} isStale={isStale} />
+      <PanelFooter signals={signals} activeTf={activeTf} lastFetch={lastFetch} isStale={isStale} onOpenWeights={onOpenWeights} hasCustomWeights={weights && (weights.ema !== 20 || weights.smma !== 20 || weights.rsi !== 20 || weights.macd !== 20 || weights.pattern !== 20)} />
     </div>
   );
 }

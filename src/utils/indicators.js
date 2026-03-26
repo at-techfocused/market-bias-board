@@ -358,24 +358,32 @@ function detectPattern(candles) {
 }
 
 // ── Scoring ──
-// Base score: 5 components × 20 points each = 100 max
-// Then modulated by ADX (trend strength) and volume conviction
-function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir, adx, volRatio) {
-  // Base component scores (0-20 each)
-  const emaScore = emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 10;
-  const smmaScore = smmaPos === 'ABOVE' ? 20 : smmaPos === 'NEAR' ? 10 : 0;
-  const rsiScore = rsiZone === 'BULLISH' ? 20 : rsiZone === 'BEARISH' ? 0 : 10;
-  const macdScore = macdDir === 'BULL' ? 20 : macdDir === 'BEAR' ? 0 : 10;
+// Base score: 5 weighted components, normalized to 100.
+// Then modulated by ADX (trend strength) and volume conviction.
+// weights: { ema, smma, rsi, macd, pattern } — each 0-40, default 20
+const DEFAULT_WEIGHTS = { ema: 20, smma: 20, rsi: 20, macd: 20, pattern: 20 };
 
-  // Pattern: if none detected, component is excluded and base rescaled
-  let baseScore;
+function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir, adx, volRatio, weights) {
+  const w = weights || DEFAULT_WEIGHTS;
+
+  // Normalized component scores (0.0 to 1.0 each)
+  const emaRaw = emaStack === 'BULL' ? 1 : emaStack === 'BEAR' ? 0 : 0.5;
+  const smmaRaw = smmaPos === 'ABOVE' ? 1 : smmaPos === 'NEAR' ? 0.5 : 0;
+  const rsiRaw = rsiZone === 'BULLISH' ? 1 : rsiZone === 'BEARISH' ? 0 : 0.5;
+  const macdRaw = macdDir === 'BULL' ? 1 : macdDir === 'BEAR' ? 0 : 0.5;
+
+  let totalWeight = w.ema + w.smma + w.rsi + w.macd;
+  let weightedSum = emaRaw * w.ema + smmaRaw * w.smma + rsiRaw * w.rsi + macdRaw * w.macd;
+
+  // Pattern: if detected, include its weight; if not, redistribute
   if (pattern != null) {
-    const patternScore = pattern.direction === 'BULL' ? 20 : pattern.direction === 'BEAR' ? 0 : 10;
-    baseScore = emaScore + smmaScore + rsiScore + macdScore + patternScore;
-  } else {
-    // 4 components × 20 = 80 max → normalize to 100
-    baseScore = Math.round(((emaScore + smmaScore + rsiScore + macdScore) / 80) * 100);
+    const patternRaw = pattern.direction === 'BULL' ? 1 : pattern.direction === 'BEAR' ? 0 : 0.5;
+    weightedSum += patternRaw * w.pattern;
+    totalWeight += w.pattern;
   }
+
+  // Normalize to 0-100
+  let baseScore = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : 50;
 
   // ADX modifier: weak trends push score toward 50 (less conviction)
   let adxMod = 1.0;
@@ -413,7 +421,7 @@ function applyConflictPenalty(score, h4Score, dScore) {
 export { applyConflictPenalty };
 
 // ── Compute all signals for a candle set ──
-export function computeSignals(candles) {
+export function computeSignals(candles, weights) {
   if (!candles || candles.length < 200) return null;
 
   const closes = candles.map((c) => c.c);
@@ -439,7 +447,7 @@ export function computeSignals(candles) {
   const smmaPosition = getSMMAPosition(close, smma99, atr);
   const rsiZone = getRSIZone(rsi);
   const macdDirection = getMACDDirection(macdData);
-  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiZone, pattern, macdDirection, adx, volRatio);
+  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiZone, pattern, macdDirection, adx, volRatio, weights);
 
   const atrPct = atr != null ? (atr / close) * 100 : null;
   const bbPct = bb != null ? ((close - bb.lower) / (bb.upper - bb.lower)) * 100 : null;
