@@ -420,6 +420,48 @@ function applyConflictPenalty(score, h4Score, dScore) {
 
 export { applyConflictPenalty };
 
+// ── Backtest: replay scoring across historical candles ──
+// Slides a 200-candle window forward one candle at a time,
+// computing the full signal set at each point.
+export function runBacktest(candles, weights, lookForward = 5) {
+  if (!candles || candles.length < 201) return [];
+
+  const results = [];
+  const minWindow = 200;
+
+  for (let end = minWindow; end <= candles.length; end++) {
+    const window = candles.slice(end - minWindow, end);
+    const signals = computeSignals(window, weights);
+    if (!signals) continue;
+
+    const currentCandle = candles[end - 1];
+
+    // Forward return: how much price moved N candles after this point
+    let fwdReturn = null;
+    let fwdCandles = null;
+    if (end + lookForward <= candles.length) {
+      const futureClose = candles[end + lookForward - 1].c;
+      fwdReturn = ((futureClose - currentCandle.c) / currentCandle.c) * 100;
+      fwdCandles = lookForward;
+    }
+
+    results.push({
+      time: currentCandle.t,
+      close: currentCandle.c,
+      score: signals.score,
+      emaStack: signals.emaStack,
+      rsiZone: signals.rsiZone,
+      macdDirection: signals.macdDirection,
+      smma99: signals.smma99,
+      pattern: signals.pattern ? signals.pattern.name : null,
+      fwdReturn,
+      fwdCandles,
+    });
+  }
+
+  return results;
+}
+
 // ── Compute all signals for a candle set ──
 export function computeSignals(candles, weights) {
   if (!candles || candles.length < 200) return null;

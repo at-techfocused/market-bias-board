@@ -8,6 +8,7 @@ import EmaStackDetail from './EmaStackDetail';
 import SmmaCard from './SmmaCard';
 import PatternBreakouts from './PatternBreakouts';
 import SignalCardsGrid from './SignalCardsGrid';
+import BacktestPanel from './BacktestPanel';
 import PanelFooter from './PanelFooter';
 import CollapsibleSection from './CollapsibleSection';
 import { TF_KEYS, TF_DISPLAY, getBiasLabel, getBiasColor } from '../utils/format';
@@ -150,6 +151,12 @@ export default function Panel({ signals, data, lastFetch, isStale, scoreHistory,
           <Card>
             <CollapsibleSection title={`SIGNAL CARDS · ${TF_DISPLAY[activeTf]}`}>
               <SignalCardsGrid signals={signals} activeTf={activeTf} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
+            <CollapsibleSection title={`BACKTEST · ${TF_DISPLAY[activeTf]}`} defaultOpen={false}>
+              <BacktestPanel data={data} activeTf={activeTf} weights={weights} />
             </CollapsibleSection>
           </Card>
 
