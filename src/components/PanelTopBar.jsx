@@ -1,11 +1,6 @@
-import { fmtPrice } from '../utils/format';
+import { fmtPrice, getScoreColor } from '../utils/format';
 
-function getSignalColor(score) {
-  if (score == null) return 'var(--amber)';
-  if (score <= 40) return 'var(--red)';
-  if (score >= 60) return 'var(--green)';
-  return 'var(--amber)';
-}
+const getSignalColor = getScoreColor;
 
 export default function PanelTopBar({ ticker, name, signals, activeTf }) {
   const active = signals?.[activeTf];

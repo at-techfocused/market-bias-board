@@ -1,11 +1,6 @@
-import { TF_KEYS, TF_DISPLAY, getBiasLabel } from '../utils/format';
+import { TF_KEYS, TF_DISPLAY, getBiasLabel, getScoreColor } from '../utils/format';
 
-function getSignalColor(score) {
-  if (score == null) return 'var(--amber)';
-  if (score <= 40) return 'var(--red)';
-  if (score >= 60) return 'var(--green)';
-  return 'var(--amber)';
-}
+const getSignalColor = getScoreColor;
 
 function getActiveBg(score) {
   if (score == null) return '#0f1208';

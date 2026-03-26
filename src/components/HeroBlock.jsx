@@ -1,4 +1,4 @@
-import { TF_DISPLAY } from '../utils/format';
+import { TF_DISPLAY, getScoreColor } from '../utils/format';
 import { applyConflictPenalty } from '../utils/indicators';
 import Tooltip from './Tooltip';
 
@@ -66,12 +66,7 @@ function buildReasoning(signals) {
   return `${prefix} ${parts.join('; ')}.`;
 }
 
-function getSignalColor(score) {
-  if (score == null) return 'var(--amber)';
-  if (score <= 40) return 'var(--red)';
-  if (score >= 60) return 'var(--green)';
-  return 'var(--amber)';
-}
+const getSignalColor = getScoreColor;
 
 function adxLabel(adx) {
   if (adx == null) return '--';

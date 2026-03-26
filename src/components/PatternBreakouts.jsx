@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { fmtPrice } from '../utils/format';
+import { fmtPrice, getDirectionColor } from '../utils/format';
 
-function getSignalColor(dir) {
-  if (dir === 'BULL') return 'var(--green)';
-  if (dir === 'BEAR') return 'var(--red)';
-  return 'var(--amber)';
-}
+const getSignalColor = getDirectionColor;
 
 function getPatternDescription(name) {
   const descriptions = {
