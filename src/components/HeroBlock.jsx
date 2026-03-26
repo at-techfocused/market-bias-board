@@ -1,4 +1,5 @@
 import { TF_DISPLAY } from '../utils/format';
+import { applyConflictPenalty } from '../utils/indicators';
 import Tooltip from './Tooltip';
 
 function getActionLabel(score, hasConflict) {
@@ -29,6 +30,7 @@ function buildReasoning(signals) {
 
   // SMMA
   if (signals.smma99 === 'ABOVE') bull.push('price above SMMA 99');
+  else if (signals.smma99 === 'NEAR') neutral.push('price near SMMA 99');
   else bear.push('price below SMMA 99');
 
   // RSI
@@ -94,30 +96,36 @@ function volColor(ratio) {
 
 function getBreakdown(signals) {
   if (!signals) return [];
-  return [
-    { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 5, max: 20, detail: signals.emaStack },
-    { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : 0, max: 20, detail: signals.smma99 },
+  const rows = [
+    { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 10, max: 20, detail: signals.emaStack },
+    { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : signals.smma99 === 'NEAR' ? 10 : 0, max: 20, detail: signals.smma99 },
     { label: 'RSI Zone', value: signals.rsiZone === 'BULLISH' ? 20 : signals.rsiZone === 'BEARISH' ? 0 : 10, max: 20, detail: `${signals.rsi} (${signals.rsiZone})` },
     { label: 'MACD', value: signals.macdDirection === 'BULL' ? 20 : signals.macdDirection === 'BEAR' ? 0 : 10, max: 20, detail: signals.macdDirection },
-    { label: 'Pattern', value: signals.pattern ? (signals.pattern.direction === 'BULL' ? 20 : signals.pattern.direction === 'BEAR' ? 0 : 10) : 10, max: 20, detail: signals.pattern ? signals.pattern.name : 'None' },
   ];
+  if (signals.pattern) {
+    rows.push({ label: 'Pattern', value: signals.pattern.direction === 'BULL' ? 20 : signals.pattern.direction === 'BEAR' ? 0 : 10, max: 20, detail: signals.pattern.name });
+  }
+  return rows;
 }
 
 export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }) {
   const active = signals?.[activeTf];
   if (!active) return null;
 
-  const score = active.score;
   const h4Score = signals?.['4H']?.score;
   const dScore = signals?.D?.score;
   const hasConflict = h4Score != null && dScore != null &&
     ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
+
+  // Apply conflict penalty to final display score
+  const score = hasConflict ? applyConflictPenalty(active.score, h4Score, dScore) : active.score;
 
   const label = getActionLabel(score, hasConflict);
   const reasoning = buildReasoning(active);
   const color = getSignalColor(score);
   const breakdown = getBreakdown(active);
 
+  const hasModifiers = active.adxMod !== 1.0 || active.volMod !== 1.0;
   const scoreTooltip = (
     <div>
       <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Score Breakdown — {TF_DISPLAY[activeTf]}</div>
@@ -129,8 +137,36 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }
           </span>
         </div>
       ))}
-      <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 6, paddingTop: 6, fontWeight: 700, color: 'var(--text-primary)' }}>
-        Total: {score}/100
+      <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 6, paddingTop: 4 }}>
+        <div className="flex items-center justify-between" style={{ padding: '2px 0' }}>
+          <span>Base</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{active.baseScore}/100</span>
+        </div>
+        {hasModifiers && (
+          <>
+            {active.adxMod !== 1.0 && (
+              <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+                <span>ADX modifier</span>
+                <span style={{ color: active.adxMod < 1 ? 'var(--amber)' : 'var(--green)' }}>×{active.adxMod}</span>
+              </div>
+            )}
+            {active.volMod !== 1.0 && (
+              <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+                <span>Volume modifier</span>
+                <span style={{ color: active.volMod < 1 ? 'var(--amber)' : 'var(--green)' }}>×{active.volMod}</span>
+              </div>
+            )}
+          </>
+        )}
+        {hasConflict && (
+          <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+            <span>Conflict penalty</span>
+            <span style={{ color: 'var(--amber)' }}>capped 40-60</span>
+          </div>
+        )}
+        <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 4, paddingTop: 4, fontWeight: 700, color: 'var(--text-primary)' }}>
+          Final: {score}/100
+        </div>
       </div>
     </div>
   );

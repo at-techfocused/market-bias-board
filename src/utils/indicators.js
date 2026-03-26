@@ -141,8 +141,11 @@ function getEMAStack(close, ema20, ema50, ema100, ema200) {
   return 'MIXED';
 }
 
-function getSMMAPosition(close, smma) {
-  return smma == null || close <= smma ? 'BELOW' : 'ABOVE';
+function getSMMAPosition(close, smma, atr) {
+  if (smma == null) return 'BELOW';
+  // NEAR zone: within 0.5× ATR of SMMA (avoids flip-flopping at the line)
+  if (atr != null && Math.abs(close - smma) < atr * 0.5) return 'NEAR';
+  return close > smma ? 'ABOVE' : 'BELOW';
 }
 
 function getRSIZone(rsi) {
@@ -355,16 +358,59 @@ function detectPattern(candles) {
 }
 
 // ── Scoring ──
-// MIXED EMA gets only 5/20 to prevent false high scores
-function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir) {
-  let score = 0;
-  score += emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 5;
-  score += smmaPos === 'ABOVE' ? 20 : 0;
-  score += rsiZone === 'BULLISH' ? 20 : rsiZone === 'BEARISH' ? 0 : 10;
-  score += macdDir === 'BULL' ? 20 : macdDir === 'BEAR' ? 0 : 10;
-  score += pattern == null ? 10 : pattern.direction === 'BULL' ? 20 : pattern.direction === 'BEAR' ? 0 : 10;
-  return score;
+// Base score: 5 components × 20 points each = 100 max
+// Then modulated by ADX (trend strength) and volume conviction
+function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir, adx, volRatio) {
+  // Base component scores (0-20 each)
+  const emaScore = emaStack === 'BULL' ? 20 : emaStack === 'BEAR' ? 0 : 10;
+  const smmaScore = smmaPos === 'ABOVE' ? 20 : smmaPos === 'NEAR' ? 10 : 0;
+  const rsiScore = rsiZone === 'BULLISH' ? 20 : rsiZone === 'BEARISH' ? 0 : 10;
+  const macdScore = macdDir === 'BULL' ? 20 : macdDir === 'BEAR' ? 0 : 10;
+
+  // Pattern: if none detected, component is excluded and base rescaled
+  let baseScore;
+  if (pattern != null) {
+    const patternScore = pattern.direction === 'BULL' ? 20 : pattern.direction === 'BEAR' ? 0 : 10;
+    baseScore = emaScore + smmaScore + rsiScore + macdScore + patternScore;
+  } else {
+    // 4 components × 20 = 80 max → normalize to 100
+    baseScore = Math.round(((emaScore + smmaScore + rsiScore + macdScore) / 80) * 100);
+  }
+
+  // ADX modifier: weak trends push score toward 50 (less conviction)
+  let adxMod = 1.0;
+  if (adx != null) {
+    if (adx < 15) adxMod = 0.6;        // very weak — heavy dampening
+    else if (adx < 20) adxMod = 0.8;    // weak — moderate dampening
+    else if (adx >= 40) adxMod = 1.1;   // strong trend — slight boost
+  }
+
+  // Volume modifier: low volume reduces conviction
+  let volMod = 1.0;
+  if (volRatio != null) {
+    if (volRatio < 0.5) volMod = 0.8;   // very low — dampen
+    else if (volRatio < 0.8) volMod = 0.9;
+    else if (volRatio >= 1.5) volMod = 1.1; // high volume — slight boost
+  }
+
+  // Apply modifiers: push score toward 50 (not toward 0)
+  const deviation = baseScore - 50;
+  const modifiedDeviation = deviation * adxMod * volMod;
+  const finalScore = Math.round(Math.max(0, Math.min(100, 50 + modifiedDeviation)));
+
+  return { score: finalScore, baseScore, adxMod, volMod };
 }
+
+// Apply conflict penalty: cap score near neutral when 4H and Daily diverge
+function applyConflictPenalty(score, h4Score, dScore) {
+  if (h4Score == null || dScore == null) return score;
+  const hasConflict = (h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50);
+  if (!hasConflict) return score;
+  // Clamp to 40-60 range during conflict
+  return Math.max(40, Math.min(60, score));
+}
+
+export { applyConflictPenalty };
 
 // ── Compute all signals for a candle set ──
 export function computeSignals(candles) {
@@ -390,10 +436,10 @@ export function computeSignals(candles) {
   const volRatio = calcVolumeRatio(volumes);
 
   const emaStack = getEMAStack(close, ema20, ema50, ema100, ema200);
-  const smmaPosition = getSMMAPosition(close, smma99);
+  const smmaPosition = getSMMAPosition(close, smma99, atr);
   const rsiZone = getRSIZone(rsi);
   const macdDirection = getMACDDirection(macdData);
-  const score = calcScore(emaStack, smmaPosition, rsiZone, pattern, macdDirection);
+  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiZone, pattern, macdDirection, adx, volRatio);
 
   const atrPct = atr != null ? (atr / close) * 100 : null;
   const bbPct = bb != null ? ((close - bb.lower) / (bb.upper - bb.lower)) * 100 : null;
@@ -411,6 +457,9 @@ export function computeSignals(candles) {
     adx,
     volRatio,
     score,
+    baseScore,
+    adxMod,
+    volMod,
     atr,
     atrPct: atrPct != null ? parseFloat(atrPct.toFixed(2)) : null,
     bbPct: bbPct != null ? parseFloat(bbPct.toFixed(0)) : null,

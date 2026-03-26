@@ -39,10 +39,12 @@ function StackBadge({ value }) {
   );
 }
 
-function SmmaBadge({ isAbove }) {
+function SmmaBadge({ position }) {
+  const color = position === 'ABOVE' ? 'var(--green)' : position === 'NEAR' ? 'var(--amber)' : 'var(--red)';
+  const label = position === 'ABOVE' ? 'ABOVE ▲' : position === 'NEAR' ? 'NEAR ◆' : 'BELOW ▼';
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, color: isAbove ? 'var(--green)' : 'var(--red)' }}>
-      {isAbove ? 'ABOVE ▲' : 'BELOW ▼'}
+    <span style={{ fontSize: 10, fontWeight: 700, color }}>
+      {label}
     </span>
   );
 }
@@ -127,7 +129,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
           <Card>
             <CollapsibleSection
               title={`SMMA 99 · ${TF_DISPLAY[activeTf]}`}
-              badge={active ? <SmmaBadge isAbove={active.smma99 === 'ABOVE'} /> : null}
+              badge={active ? <SmmaBadge position={active.smma99} /> : null}
             >
               <SmmaCard signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
