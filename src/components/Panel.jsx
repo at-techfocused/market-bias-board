@@ -1,37 +1,27 @@
 import PanelTopBar from './PanelTopBar';
 import TimeframeTabs from './TimeframeTabs';
 import HeroBlock from './HeroBlock';
-import ConflictBadge from './ConflictBadge';
 import EntryStopTarget from './EntryStopTarget';
-import MetricsRow from './MetricsRow';
+
 import SignalRows from './SignalRows';
 import EmaStackDetail from './EmaStackDetail';
 import SmmaCard from './SmmaCard';
 import PatternBreakouts from './PatternBreakouts';
 import SignalCardsGrid from './SignalCardsGrid';
+import BacktestPanel from './BacktestPanel';
 import PanelFooter from './PanelFooter';
 import CollapsibleSection from './CollapsibleSection';
 import { TF_KEYS, TF_DISPLAY, getBiasLabel, getBiasColor } from '../utils/format';
+import { getTickerName } from '../utils/tickers';
 
-const ASSET_NAMES = {
-  'BINANCE:BTCUSDT': 'Bitcoin',
-  'BINANCE:ETHUSDT': 'Ethereum',
-  'BINANCE:SOLUSDT': 'Solana',
-  AAPL: 'Apple Inc.',
-  TSLA: 'Tesla Inc.',
-  MSFT: 'Microsoft',
-  AMZN: 'Amazon',
-  GOOG: 'Alphabet',
-  NVDA: 'NVIDIA',
-  META: 'Meta Platforms',
-  SPY: 'S&P 500 ETF',
-  QQQ: 'Nasdaq 100 ETF',
-};
 
 const card = {
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border)',
+  background: '#0f1923',
+  border: '1px solid #1c2e3d',
   borderRadius: 10,
+  padding: '14px 16px',
+  marginBottom: 8,
+  overflow: 'hidden',
   flexShrink: 0,
 };
 
@@ -50,20 +40,22 @@ function StackBadge({ value }) {
   );
 }
 
-function SmmaBadge({ isAbove }) {
+function SmmaBadge({ position }) {
+  const color = position === 'ABOVE' ? 'var(--green)' : position === 'NEAR' ? 'var(--amber)' : 'var(--red)';
+  const label = position === 'ABOVE' ? 'ABOVE ▲' : position === 'NEAR' ? 'NEAR ◆' : 'BELOW ▼';
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, color: isAbove ? 'var(--green)' : 'var(--red)' }}>
-      {isAbove ? 'ABOVE ▲' : 'BELOW ▼'}
+    <span style={{ fontSize: 10, fontWeight: 700, color }}>
+      {label}
     </span>
   );
 }
 
-export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTfChange }) {
+export default function Panel({ signals, data, lastFetch, isStale, scoreHistory, ticker, activeTf, onTfChange, onOpenWeights, weights }) {
   const active = signals?.[activeTf];
   const isLoading = data?.['1H']?.loading || data?.['4H']?.loading || data?.D?.loading;
   const allErrors = TF_KEYS.every((tf) => data?.[tf]?.error && !data?.[tf]?.loading);
 
-  const displayName = ASSET_NAMES[ticker] || ticker;
+  const displayName = getTickerName(ticker);
   const tickerShort = ticker.includes(':') ? ticker.split(':')[1] : ticker;
 
   if (isLoading && !active) {
@@ -90,36 +82,29 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
     );
   }
 
-  const h4Score = signals?.['4H']?.score;
-  const dScore = signals?.D?.score;
-  const hasConflict = h4Score != null && dScore != null &&
-    ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
-
   const biasLabel = active ? getBiasLabel(active.score) : '';
   const biasColor = active ? getBiasColor(active.score) : '';
 
   return (
     <div className="flex flex-col h-full"
-      style={{ background: 'var(--bg-card)', borderRadius: 12, border: '1px solid var(--border)' }}>
+      style={{ background: '#0a1218' }}>
       {/* Top bar + tabs: flush to top, outside card system */}
       <PanelTopBar ticker={tickerShort} name={displayName} signals={signals} activeTf={activeTf} />
       <TimeframeTabs signals={signals} activeTf={activeTf} onTfChange={onTfChange} />
 
       {/* Scrollable card stack */}
-      <div className="flex-1 overflow-y-auto"
-        style={{ padding: 8, scrollbarWidth: 'thin', scrollbarColor: 'var(--border) transparent' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="flex-1 overflow-y-auto panel-scroll"
+        style={{ padding: 8, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
 
           <Card>
             <CollapsibleSection
               title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
               badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
             >
-              <HeroBlock signals={signals} activeTf={activeTf} />
+              <HeroBlock signals={signals} activeTf={activeTf} tickerName={displayName} tickerShort={tickerShort} scoreHistory={scoreHistory} />
             </CollapsibleSection>
           </Card>
-
-          {hasConflict && <Card><ConflictBadge signals={signals} /></Card>}
 
           <Card>
             <CollapsibleSection title={`ENTRY / STOP / TARGET`}>
@@ -128,8 +113,8 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
           </Card>
 
           <Card>
-            <CollapsibleSection title={`METRICS · ${TF_DISPLAY[activeTf]}`}>
-              <MetricsRow signals={signals} activeTf={activeTf} />
+            <CollapsibleSection title={`BACKTEST · ${TF_DISPLAY[activeTf]}`} defaultOpen={false}>
+              <BacktestPanel data={data} activeTf={activeTf} weights={weights} />
             </CollapsibleSection>
           </Card>
 
@@ -151,17 +136,23 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
           <Card>
             <CollapsibleSection
               title={`SMMA 99 · ${TF_DISPLAY[activeTf]}`}
-              badge={active ? <SmmaBadge isAbove={active.smma99 === 'ABOVE'} /> : null}
+              badge={active ? <SmmaBadge position={active.smma99} /> : null}
             >
               <SmmaCard signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
           </Card>
 
-          <Card>
-            <CollapsibleSection title="PATTERN BREAKOUTS">
+          {active?.pattern ? (
+            <Card>
+              <CollapsibleSection title="PATTERN BREAKOUTS">
+                <PatternBreakouts signals={signals} activeTf={activeTf} />
+              </CollapsibleSection>
+            </Card>
+          ) : (
+            <div style={{ padding: '0 8px' }}>
               <PatternBreakouts signals={signals} activeTf={activeTf} />
-            </CollapsibleSection>
-          </Card>
+            </div>
+          )}
 
           <Card>
             <CollapsibleSection title={`SIGNAL CARDS · ${TF_DISPLAY[activeTf]}`}>
@@ -169,10 +160,11 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
             </CollapsibleSection>
           </Card>
 
+
         </div>
       </div>
 
-      <PanelFooter signals={signals} activeTf={activeTf} />
+      <PanelFooter signals={signals} activeTf={activeTf} lastFetch={lastFetch} isStale={isStale} onOpenWeights={onOpenWeights} hasCustomWeights={weights && (weights.ema !== 20 || weights.smma !== 20 || weights.rsi !== 20 || weights.macd !== 20 || weights.pattern !== 20)} />
     </div>
   );
 }

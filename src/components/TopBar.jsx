@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import WatchlistChip from './WatchlistChip';
+import TickerSearch from './TickerSearch';
 
-export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals }) {
-  const [search, setSearch] = useState('');
+export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals, onCompare }) {
+  const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -12,73 +13,93 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
     return () => clearInterval(id);
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const ticker = search.trim().toUpperCase();
-    if (ticker) {
-      onTickerChange(ticker);
-      setSearch('');
-    }
+  const handleSelect = (ticker) => {
+    onTickerChange(ticker);
+    onAddToWatchlist(ticker);
+    setSearchOpen(false);
   };
 
   const isInWatchlist = watchlist.includes(activeTicker);
 
   return (
-    <div className="flex items-center gap-4 px-5 py-2.5 sticky top-0 z-50"
-      style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="w-[7px] h-[7px] rounded-full animate-pulse"
-          style={{ background: 'var(--green)', boxShadow: '0 0 8px var(--green)' }} />
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-          BIASBOARD
-        </span>
-      </div>
+    <div className="topbar" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
+      {/* Single compact row: logo, search trigger, watchlist chips, clock */}
+      <div className="flex items-center gap-2 px-3 topbar-row" style={{ height: 36 }}>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="w-[6px] h-[6px] rounded-full animate-pulse"
+            style={{ background: 'var(--green)', boxShadow: '0 0 6px var(--green)' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-primary)' }}>
+            BIASBOARD
+          </span>
+        </div>
 
-      <form onSubmit={handleSubmit} className="relative w-[200px] shrink-0">
-        <input
-          type="text"
-          placeholder="Search ticker..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="topbar-search-btn"
           style={{
-            width: '100%',
-            fontSize: 12,
-            padding: '7px 12px',
-            borderRadius: 4,
-            outline: 'none',
+            fontSize: 11,
+            padding: '3px 10px',
+            borderRadius: 3,
             background: 'var(--bg-base)',
             border: '1px solid var(--border)',
-            color: 'var(--text-primary)',
+            color: 'var(--text-body)',
+            opacity: 0.6,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
             fontFamily: "'Inter', system-ui, sans-serif",
           }}
-        />
-      </form>
+        >
+          Search ticker…
+        </button>
 
-      <div className="flex gap-1.5 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        {watchlist.map((ticker) => (
-          <WatchlistChip
-            key={ticker}
-            ticker={ticker}
-            active={ticker === activeTicker}
-            signals={signals}
-            onClick={() => onTickerChange(ticker)}
-            onRemove={() => onRemoveFromWatchlist(ticker)}
-          />
-        ))}
-        {!isInWatchlist && (
-          <button onClick={() => onAddToWatchlist(activeTicker)}
+        {onCompare && (
+          <button
+            onClick={onCompare}
+            className="topbar-compare-btn"
             style={{
-              fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap',
-              background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-body)',
-            }}>
-            + ADD
+              fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 3, cursor: 'pointer',
+              whiteSpace: 'nowrap', letterSpacing: '0.04em',
+              background: 'rgba(42,184,184,0.08)', border: '1px solid rgba(42,184,184,0.3)', color: '#2ab8b8',
+            }}
+          >
+            COMPARE
           </button>
         )}
+
+        <div className="flex items-center gap-1 topbar-watchlist" style={{ flex: 1, overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          {watchlist.map((ticker) => (
+            <WatchlistChip
+              key={ticker}
+              ticker={ticker}
+              active={ticker === activeTicker}
+              signals={signals}
+              onClick={() => onTickerChange(ticker)}
+              onRemove={() => onRemoveFromWatchlist(ticker)}
+            />
+          ))}
+          {!isInWatchlist && (
+            <button onClick={() => onAddToWatchlist(activeTicker)}
+              style={{
+                fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 3, cursor: 'pointer', whiteSpace: 'nowrap',
+                background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-body)',
+              }}>
+              + ADD
+            </button>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', opacity: 0.5, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+        </div>
       </div>
 
-      <div className="ml-auto shrink-0">
-        <span style={{ fontSize: 10, letterSpacing: '0.08em', color: 'var(--text-body)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-      </div>
+      {searchOpen && (
+        <TickerSearch
+          onSelect={handleSelect}
+          onClose={() => setSearchOpen(false)}
+          watchlist={watchlist}
+        />
+      )}
     </div>
   );
 }

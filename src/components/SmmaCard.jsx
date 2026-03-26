@@ -48,7 +48,7 @@ export default function SmmaCard({ signals, activeTf }) {
   const distance = smma != null ? ((close - smma) / smma * 100) : null;
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
+    <div>
       <div className="rounded-[7px] overflow-hidden"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="grid grid-cols-3">

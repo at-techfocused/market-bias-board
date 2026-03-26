@@ -7,9 +7,9 @@ export default function CollapsibleSection({ title, badge, defaultOpen = true, c
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full"
+        className="flex items-center justify-between w-full collapsible-btn"
         style={{
-          padding: '10px 16px 8px',
+          padding: '0 0 10px',
           background: 'none',
           border: 'none',
           cursor: 'pointer',

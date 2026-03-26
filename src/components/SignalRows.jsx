@@ -1,10 +1,7 @@
+import { getDirectionColor } from '../utils/format';
 import Tooltip from './Tooltip';
 
-function getSignalColor(type) {
-  if (type === 'BULL' || type === 'BULLISH' || type === 'ABOVE') return 'var(--green)';
-  if (type === 'BEAR' || type === 'BEARISH' || type === 'BELOW') return 'var(--red)';
-  return 'var(--amber)';
-}
+const getSignalColor = getDirectionColor;
 
 export default function SignalRows({ signals, activeTf }) {
   const active = signals?.[activeTf];
@@ -45,7 +42,7 @@ export default function SignalRows({ signals, activeTf }) {
   ];
 
   return (
-    <div style={{ padding: '0 16px 14px' }}>
+    <div>
       <div className="rounded-[7px] overflow-hidden" style={{ border: '1px solid var(--border)' }}>
         {rows.map((row, i) => (
           <Tooltip key={row.name} content={

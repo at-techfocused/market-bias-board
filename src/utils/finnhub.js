@@ -1,5 +1,29 @@
 const IS_PROD = import.meta.env.PROD;
 
+// ── Symbol alias map ──
+// Maps display symbols (what TradingView uses) to Yahoo Finance tickers.
+// Without this, "WTI" resolves to W&T Offshore stock instead of crude oil.
+const YAHOO_ALIASES = {
+  WTI: 'CL=F',       // WTI Crude Oil futures
+  USOIL: 'CL=F',     // alias for crude
+  BRENT: 'BZ=F',     // Brent Crude futures
+  XAUUSD: 'GC=F',    // Gold futures
+  GOLD: 'GC=F',      // Gold alias
+  XAGUSD: 'SI=F',    // Silver futures
+  SILVER: 'SI=F',    // Silver alias
+  NATGAS: 'NG=F',    // Natural Gas futures
+  DXY: 'DX-Y.NYB',   // US Dollar Index
+  US30: 'YM=F',      // Dow Jones futures
+  US500: 'ES=F',     // S&P 500 futures
+  NAS100: 'NQ=F',    // Nasdaq 100 futures
+  DOW: 'YM=F',       // Dow alias
+  VIX: '^VIX',       // Volatility Index
+};
+
+function resolveYahooSymbol(ticker) {
+  return YAHOO_ALIASES[ticker.toUpperCase()] || ticker;
+}
+
 function isCrypto(ticker) {
   return ticker.includes(':');
 }
@@ -34,7 +58,8 @@ function parseNormalizedCandles(data) {
 }
 
 // ── Fetch via serverless proxy (production — handles both crypto & stocks) ──
-async function fetchViaProxy(ticker, resolution) {
+async function fetchViaProxy(rawTicker, resolution) {
+  const ticker = isCrypto(rawTicker) ? rawTicker : resolveYahooSymbol(rawTicker);
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
   if (resolution === '240') intervalSeconds = 4 * 60 * 60;
@@ -124,7 +149,8 @@ function aggregateToFourHour(candles) {
 }
 
 // ── Yahoo Finance direct call (dev mode — no API key needed) ──
-async function fetchYahooDirect(ticker, resolution) {
+async function fetchYahooDirect(rawTicker, resolution) {
+  const ticker = resolveYahooSymbol(rawTicker);
   // For 4H (240): fetch 1H data and aggregate
   const needsAggregation = resolution === '240';
   const configMap = {

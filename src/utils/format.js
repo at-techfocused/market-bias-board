@@ -15,6 +15,21 @@ export function getBiasColor(score) {
   return 'var(--amber)';
 }
 
+// Unified color for score-based values (score 0-100)
+export function getScoreColor(score) {
+  if (score == null) return 'var(--amber)';
+  if (score <= 40) return 'var(--red)';
+  if (score >= 60) return 'var(--green)';
+  return 'var(--amber)';
+}
+
+// Unified color for directional values (BULL/BEAR/ABOVE/BELOW etc.)
+export function getDirectionColor(dir) {
+  if (dir === 'BULL' || dir === 'BULLISH' || dir === 'ABOVE') return 'var(--green)';
+  if (dir === 'BEAR' || dir === 'BEARISH' || dir === 'BELOW') return 'var(--red)';
+  return 'var(--amber)';
+}
+
 export function fmtPrice(val) {
   if (val == null) return '--';
   if (val >= 10000) return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });

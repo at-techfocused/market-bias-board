@@ -12,7 +12,10 @@ body {
   color: var(--text-body);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 ::-webkit-scrollbar {
@@ -24,4 +27,67 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 2px;
+}
+
+/* Hide panel scrollbar */
+.panel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desktop search button */
+.topbar-search-btn {
+  width: auto;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  /* TopBar: hide search label on small screens */
+  .topbar-search-btn {
+    font-size: 0 !important;
+    padding: 3px 6px !important;
+  }
+  .topbar-search-btn::before {
+    content: '🔍';
+    font-size: 11px;
+  }
+
+  /* Watchlist: horizontal scroll */
+  .topbar-watchlist {
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px !important;
+  }
+
+  .topbar-row {
+    height: 32px !important;
+  }
+
+  /* Larger touch targets for collapsible section buttons */
+  .collapsible-btn {
+    min-height: 44px !important;
+  }
+
+  /* Timeframe tabs: taller for touch */
+  .tf-tabs button {
+    min-height: 54px;
+  }
+
+  /* Panel: no border-radius when full-width */
+  .panel-wrapper > div {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  /* Safe area insets for notch/home indicator */
+  .topbar > div:first-child {
+    padding-top: max(10px, env(safe-area-inset-top)) !important;
+  }
+  .panel-footer {
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Mobile view toggle */
+  .mobile-view-toggle button {
+    min-height: 40px;
+  }
 }

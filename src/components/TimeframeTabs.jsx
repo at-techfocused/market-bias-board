@@ -1,11 +1,6 @@
-import { TF_KEYS, TF_DISPLAY, getBiasLabel } from '../utils/format';
+import { TF_KEYS, TF_DISPLAY, getBiasLabel, getScoreColor } from '../utils/format';
 
-function getSignalColor(score) {
-  if (score == null) return 'var(--amber)';
-  if (score <= 40) return 'var(--red)';
-  if (score >= 60) return 'var(--green)';
-  return 'var(--amber)';
-}
+const getSignalColor = getScoreColor;
 
 function getActiveBg(score) {
   if (score == null) return '#0f1208';
@@ -16,7 +11,7 @@ function getActiveBg(score) {
 
 export default function TimeframeTabs({ signals, activeTf, onTfChange }) {
   return (
-    <div className="grid grid-cols-3" style={{ background: 'var(--bg-deep)' }}>
+    <div className="grid grid-cols-3 tf-tabs" style={{ background: 'var(--bg-deep)' }}>
       {TF_KEYS.map((tf) => {
         const isActive = tf === activeTf;
         const sig = signals?.[tf];

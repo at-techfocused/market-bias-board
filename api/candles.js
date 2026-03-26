@@ -1,3 +1,21 @@
+// Symbol alias map — matches display symbols to Yahoo Finance tickers
+const YAHOO_ALIASES = {
+  WTI: 'CL=F',
+  USOIL: 'CL=F',
+  BRENT: 'BZ=F',
+  XAUUSD: 'GC=F',
+  GOLD: 'GC=F',
+  XAGUSD: 'SI=F',
+  SILVER: 'SI=F',
+  NATGAS: 'NG=F',
+  DXY: 'DX-Y.NYB',
+  US30: 'YM=F',
+  US500: 'ES=F',
+  NAS100: 'NQ=F',
+  DOW: 'YM=F',
+  VIX: '^VIX',
+};
+
 export default async function handler(req, res) {
   const { symbol, resolution, from, to } = req.query;
 
@@ -20,8 +38,9 @@ export default async function handler(req, res) {
     return fetchCrypto(req, res, symbol, resolution);
   }
 
-  // ── Stocks: Yahoo Finance (free, no API key needed) ──
-  return fetchStock(req, res, symbol, resolution);
+  // ── Stocks / Commodities: Yahoo Finance (resolve aliases first) ──
+  const resolved = YAHOO_ALIASES[symbol.toUpperCase()] || symbol;
+  return fetchStock(req, res, resolved, resolution);
 }
 
 async function fetchCrypto(req, res, symbol, resolution) {

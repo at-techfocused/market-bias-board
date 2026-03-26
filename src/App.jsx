@@ -2,8 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopBar from './components/TopBar';
 import TradingViewWidget from './components/TradingViewWidget';
 import Panel from './components/Panel';
+import TickerCompare from './components/TickerCompare';
+import WeightSettings, { loadWeights } from './components/WeightSettings';
+
 import { useFinnhub } from './hooks/useFinnhub';
 import { useIndicators } from './hooks/useIndicators';
+import { useScoreHistory } from './hooks/useScoreHistory';
 
 const DEFAULT_WATCHLIST = ['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT', 'AAPL', 'TSLA'];
 const STORAGE_KEY = 'biasboard_watchlist';
@@ -20,16 +24,33 @@ function saveWatchlist(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return mobile;
+}
+
 export default function App() {
   const [activeTicker, setActiveTicker] = useState(() => {
     const wl = loadWatchlist();
     return wl[0] || 'BINANCE:BTCUSDT';
   });
   const [watchlist, setWatchlist] = useState(loadWatchlist);
+  const [mobileView, setMobileView] = useState('panel');
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [weightsOpen, setWeightsOpen] = useState(false);
+  const [weights, setWeights] = useState(loadWeights);
 
   const [activeTf, setActiveTf] = useState('4H');
-  const { data, lastFetch, loadTicker } = useFinnhub();
-  const signals = useIndicators(data);
+  const { data, lastFetch, isStale, loadTicker } = useFinnhub();
+  const signals = useIndicators(data, weights);
+  const scoreHistory = useScoreHistory(signals);
+  const isMobile = useIsMobile();
 
   const chartInterval = useMemo(() => {
     const map = { '1H': '60', '4H': '240', D: 'D' };
@@ -60,7 +81,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: '#060d13', fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="flex flex-col" style={{ height: '100vh', background: '#060d13', boxSizing: 'border-box', fontFamily: "'Inter', system-ui, sans-serif" }}>
       <TopBar
         activeTicker={activeTicker}
         watchlist={watchlist}
@@ -68,18 +89,90 @@ export default function App() {
         onAddToWatchlist={handleAddToWatchlist}
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
+        onCompare={() => setCompareOpen(true)}
       />
-      <div className="flex-1 flex" style={{ padding: 12, gap: 12, minHeight: 0 }}>
+
+      {/* Mobile view toggle */}
+      {isMobile && (
+        <div className="flex mobile-view-toggle" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
+          <button
+            onClick={() => setMobileView('panel')}
+            style={{
+              flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+              background: mobileView === 'panel' ? 'var(--bg-base)' : 'transparent',
+              color: mobileView === 'panel' ? 'var(--text-primary)' : 'var(--text-body)',
+              border: 'none', borderBottom: mobileView === 'panel' ? '2px solid var(--green)' : '2px solid transparent',
+              cursor: 'pointer',
+            }}
+          >
+            ANALYSIS
+          </button>
+          <button
+            onClick={() => setMobileView('chart')}
+            style={{
+              flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+              background: mobileView === 'chart' ? 'var(--bg-base)' : 'transparent',
+              color: mobileView === 'chart' ? 'var(--text-primary)' : 'var(--text-body)',
+              border: 'none', borderBottom: mobileView === 'chart' ? '2px solid var(--green)' : '2px solid transparent',
+              cursor: 'pointer',
+            }}
+          >
+            CHART
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex app-layout" style={{ padding: isMobile ? 0 : 12, gap: isMobile ? 0 : 12, minHeight: 0 }}>
         {/* Chart card */}
-        <div className="flex-1 flex flex-col overflow-hidden"
-          style={{ background: 'var(--bg-base)', borderRadius: 10, border: '1px solid var(--border)' }}>
+        <div
+          className="flex-1 flex flex-col overflow-hidden chart-card"
+          style={{
+            borderRadius: isMobile ? 0 : 10,
+            border: isMobile ? 'none' : '1px solid #1c2e3d',
+            overflow: 'hidden',
+            display: isMobile && mobileView !== 'chart' ? 'none' : 'flex',
+          }}
+        >
           <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
         </div>
         {/* Panel */}
-        <div style={{ width: 480, minWidth: 480, flexShrink: 0 }}>
-          <Panel signals={signals} data={data} lastFetch={lastFetch} ticker={activeTicker} activeTf={activeTf} onTfChange={setActiveTf} />
+        <div
+          className="panel-wrapper"
+          style={{
+            width: isMobile ? '100%' : 480,
+            minWidth: isMobile ? 0 : 480,
+            flexShrink: 0,
+            borderRadius: isMobile ? 0 : 10,
+            border: isMobile ? 'none' : '1px solid #1c2e3d',
+            overflow: 'hidden',
+            display: isMobile && mobileView !== 'panel' ? 'none' : 'block',
+            flex: isMobile ? 1 : undefined,
+          }}
+        >
+          <Panel
+            signals={signals} data={data} lastFetch={lastFetch} isStale={isStale}
+            scoreHistory={scoreHistory} ticker={activeTicker} activeTf={activeTf}
+            onTfChange={setActiveTf} onOpenWeights={() => setWeightsOpen(true)} weights={weights}
+          />
         </div>
       </div>
+
+      {/* Modals */}
+      {compareOpen && (
+        <TickerCompare
+          watchlist={watchlist}
+          activeTicker={activeTicker}
+          onTickerChange={handleTickerChange}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+      {weightsOpen && (
+        <WeightSettings
+          weights={weights}
+          onChange={setWeights}
+          onClose={() => setWeightsOpen(false)}
+        />
+      )}
     </div>
   );
 }

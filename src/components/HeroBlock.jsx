@@ -1,5 +1,7 @@
-import { TF_KEYS, TF_DISPLAY, getBiasLabel } from '../utils/format';
+import { TF_DISPLAY, getScoreColor } from '../utils/format';
+import { applyConflictPenalty } from '../utils/indicators';
 import Tooltip from './Tooltip';
+import Sparkline from './Sparkline';
 
 function getActionLabel(score, hasConflict) {
   if (hasConflict) {
@@ -15,59 +17,111 @@ function getActionLabel(score, hasConflict) {
   return 'STRONG LONG';
 }
 
-function getDescription(label) {
-  const map = {
-    'STRONG SHORT': 'High conviction bearish. Short on bounces, trail stop tight.',
-    'SHORT BIAS': 'Indicators lean bearish. Tighten longs, favor short setups.',
-    'LEAN SHORT': 'Slight bearish edge. Small positions, wait for confirmation.',
-    'NEUTRAL': 'Mixed signals. Monitor closely, avoid sizing in.',
-    'LEAN LONG': 'Slight bullish edge. Small positions, scale with confirmation.',
-    'BULL BIAS': 'Indicators lean bullish. Favor long setups, scale in with R.',
-    'BEAR BIAS': 'Indicators lean bearish. Favor short setups, tight risk management.',
-    'STRONG LONG': 'High conviction bullish. All indicators aligned, full R.',
-  };
-  return map[label] || '';
+function buildReasoning(signals) {
+  if (!signals) return 'Awaiting data.';
+
+  const bull = [];
+  const bear = [];
+  const neutral = [];
+
+  // EMA Stack
+  if (signals.emaStack === 'BULL') bull.push('EMA stack bullish aligned');
+  else if (signals.emaStack === 'BEAR') bear.push('EMA stack bearish aligned');
+  else neutral.push('EMA stack mixed');
+
+  // SMMA
+  if (signals.smma99 === 'ABOVE') bull.push('price above SMMA 99');
+  else if (signals.smma99 === 'NEAR') neutral.push('price near SMMA 99');
+  else bear.push('price below SMMA 99');
+
+  // RSI
+  if (signals.rsiZone === 'BULLISH') bull.push(`RSI bullish at ${signals.rsi}`);
+  else if (signals.rsiZone === 'BEARISH') bear.push(`RSI bearish at ${signals.rsi}`);
+  else neutral.push(`RSI neutral at ${signals.rsi}`);
+
+  // MACD
+  if (signals.macdDirection === 'BULL') bull.push('MACD bullish crossover');
+  else if (signals.macdDirection === 'BEAR') bear.push('MACD bearish crossover');
+  else neutral.push('MACD neutral');
+
+  // Pattern
+  if (signals.pattern) {
+    if (signals.pattern.direction === 'BULL') bull.push(`${signals.pattern.name} pattern`);
+    else if (signals.pattern.direction === 'BEAR') bear.push(`${signals.pattern.name} pattern`);
+    else neutral.push(`${signals.pattern.name} (neutral)`);
+  }
+
+  const parts = [];
+  if (bull.length > 0) parts.push(bull.join(', '));
+  if (bear.length > 0) parts.push((bull.length > 0 ? 'but ' : '') + bear.join(', '));
+  if (neutral.length > 0 && parts.length === 0) parts.push(neutral.join(', '));
+
+  const score = signals.score;
+  let prefix;
+  if (score >= 80) prefix = 'Strong bullish conviction —';
+  else if (score >= 60) prefix = 'Bullish lean —';
+  else if (score <= 20) prefix = 'Strong bearish conviction —';
+  else if (score <= 40) prefix = 'Bearish lean —';
+  else prefix = 'Mixed signals —';
+
+  return `${prefix} ${parts.join('; ')}.`;
 }
 
-function getSignalColor(score) {
-  if (score == null) return 'var(--amber)';
-  if (score <= 40) return 'var(--red)';
-  if (score >= 60) return 'var(--green)';
+const getSignalColor = getScoreColor;
+
+function adxLabel(adx) {
+  if (adx == null) return '--';
+  if (adx < 20) return 'weak trend';
+  if (adx < 40) return 'moderate trend';
+  return 'strong trend';
+}
+
+function volLabel(ratio) {
+  if (ratio == null) return '--';
+  if (ratio < 0.8) return 'low conv.';
+  if (ratio < 1.2) return 'average';
+  return 'confirmed';
+}
+
+function volColor(ratio) {
+  if (ratio == null) return 'var(--text-body)';
+  if (ratio >= 1.5) return 'var(--green)';
+  if (ratio < 0.5) return 'var(--red)';
   return 'var(--amber)';
 }
 
 function getBreakdown(signals) {
   if (!signals) return [];
-  return [
-    { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 5, max: 20, detail: signals.emaStack },
-    { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : 0, max: 20, detail: signals.smma99 },
+  const rows = [
+    { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 10, max: 20, detail: signals.emaStack },
+    { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : signals.smma99 === 'NEAR' ? 10 : 0, max: 20, detail: signals.smma99 },
     { label: 'RSI Zone', value: signals.rsiZone === 'BULLISH' ? 20 : signals.rsiZone === 'BEARISH' ? 0 : 10, max: 20, detail: `${signals.rsi} (${signals.rsiZone})` },
     { label: 'MACD', value: signals.macdDirection === 'BULL' ? 20 : signals.macdDirection === 'BEAR' ? 0 : 10, max: 20, detail: signals.macdDirection },
-    { label: 'Pattern', value: signals.pattern ? (signals.pattern.direction === 'BULL' ? 20 : signals.pattern.direction === 'BEAR' ? 0 : 10) : 10, max: 20, detail: signals.pattern ? signals.pattern.name : 'None' },
   ];
+  if (signals.pattern) {
+    rows.push({ label: 'Pattern', value: signals.pattern.direction === 'BULL' ? 20 : signals.pattern.direction === 'BEAR' ? 0 : 10, max: 20, detail: signals.pattern.name });
+  }
+  return rows;
 }
 
-export default function HeroBlock({ signals, activeTf }) {
+export default function HeroBlock({ signals, activeTf, tickerName, tickerShort, scoreHistory }) {
   const active = signals?.[activeTf];
   if (!active) return null;
 
-  const score = active.score;
   const h4Score = signals?.['4H']?.score;
   const dScore = signals?.D?.score;
   const hasConflict = h4Score != null && dScore != null &&
     ((h4Score < 50 && dScore > 50) || (h4Score > 50 && dScore < 50));
 
+  // Apply conflict penalty to final display score
+  const score = hasConflict ? applyConflictPenalty(active.score, h4Score, dScore) : active.score;
+
   const label = getActionLabel(score, hasConflict);
-  const desc = getDescription(label);
+  const reasoning = buildReasoning(active);
   const color = getSignalColor(score);
   const breakdown = getBreakdown(active);
 
-  const allScores = TF_KEYS.map((t) => signals?.[t]?.score).filter((s) => s != null);
-  let agreement = 100;
-  if (allScores.length >= 2) {
-    agreement = Math.max(0, Math.round(100 - (Math.max(...allScores) - Math.min(...allScores))));
-  }
-
+  const hasModifiers = active.adxMod !== 1.0 || active.volMod !== 1.0;
   const scoreTooltip = (
     <div>
       <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Score Breakdown — {TF_DISPLAY[activeTf]}</div>
@@ -79,56 +133,123 @@ export default function HeroBlock({ signals, activeTf }) {
           </span>
         </div>
       ))}
-      <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 6, paddingTop: 6, fontWeight: 700, color: 'var(--text-primary)' }}>
-        Total: {score}/100
+      <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 6, paddingTop: 4 }}>
+        <div className="flex items-center justify-between" style={{ padding: '2px 0' }}>
+          <span>Base</span>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{active.baseScore}/100</span>
+        </div>
+        {hasModifiers && (
+          <>
+            {active.adxMod !== 1.0 && (
+              <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+                <span>ADX modifier</span>
+                <span style={{ color: active.adxMod < 1 ? 'var(--amber)' : 'var(--green)' }}>×{active.adxMod}</span>
+              </div>
+            )}
+            {active.volMod !== 1.0 && (
+              <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+                <span>Volume modifier</span>
+                <span style={{ color: active.volMod < 1 ? 'var(--amber)' : 'var(--green)' }}>×{active.volMod}</span>
+              </div>
+            )}
+          </>
+        )}
+        {hasConflict && (
+          <div className="flex items-center justify-between" style={{ padding: '2px 0', fontSize: 11 }}>
+            <span>Conflict penalty</span>
+            <span style={{ color: 'var(--amber)' }}>capped 40-60</span>
+          </div>
+        )}
+        <div style={{ borderTop: '1px solid var(--border-inner)', marginTop: 4, paddingTop: 4, fontWeight: 700, color: 'var(--text-primary)' }}>
+          Final: {score}/100
+        </div>
       </div>
     </div>
   );
 
-  const agreementTooltip = (
-    <div>
-      <div style={{ fontWeight: 700, marginBottom: 6, color: 'var(--text-primary)' }}>Timeframe Agreement</div>
-      <div style={{ marginBottom: 6 }}>How aligned all timeframes are. 100% = full agreement.</div>
-      {TF_KEYS.map((t) => {
-        const s = signals?.[t]?.score;
-        return s != null ? (
-          <div key={t} className="flex items-center justify-between" style={{ padding: '2px 0' }}>
-            <span>{TF_DISPLAY[t]}</span>
-            <span style={{ fontWeight: 600, color: getSignalColor(s) }}>{s}/100 — {getBiasLabel(s)}</span>
-          </div>
-        ) : null;
-      })}
-    </div>
-  );
+  const sparkPoints = scoreHistory?.[activeTf] || [];
+
+  const metrics = [
+    {
+      label: 'SCORE', value: score, color: getSignalColor(score),
+      sub: `/ 100 · ${TF_DISPLAY[activeTf]}`,
+      tip: scoreTooltip,
+      sparkline: sparkPoints,
+    },
+    {
+      label: 'ADX', value: active.adx ?? '--', color: 'var(--text-body)',
+      sub: adxLabel(active.adx),
+      tip: <div><div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Average Directional Index</div>Measures trend strength regardless of direction. Below 20 = weak/ranging, 20–40 = moderate trend, above 40 = strong trend.</div>,
+    },
+    {
+      label: 'VOL', value: active.volRatio != null ? `${active.volRatio}x` : '--',
+      color: volColor(active.volRatio), sub: volLabel(active.volRatio),
+      tip: <div><div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Volume Ratio</div>Current volume vs 20-period average. Below 0.8x = low conviction, 0.8–1.2x = average, above 1.5x = high conviction.</div>,
+    },
+  ];
 
   return (
     <div style={{ padding: '4px 16px 14px' }}>
-      {/* Score — clickable for breakdown */}
-      <Tooltip content={scoreTooltip}>
-        <div className="flex items-baseline gap-1.5">
-          <span style={{ fontSize: 56, fontFamily: "'Georgia', serif", fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1 }}>
-            {score}
-          </span>
-          <span style={{ fontSize: 24, color: 'var(--text-body)' }}>/100</span>
+      {/* Ticker identity */}
+      {tickerName && (
+        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tickerShort || tickerName}</span>
+          {tickerShort && tickerName !== tickerShort && (
+            <span style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.5 }}>{tickerName}</span>
+          )}
         </div>
-      </Tooltip>
-
-      {/* Description */}
-      <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.5, marginTop: 8 }}>
-        {desc}
+      )}
+      {/* Metrics row: SCORE, ADX, VOL */}
+      <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 10 }}>
+        {metrics.map((m) => (
+          <Tooltip key={m.label} content={m.tip}>
+            <div className="rounded-[7px] py-3 px-3 text-center"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                {m.label}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: m.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                {m.value}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-body)', marginTop: 4 }}>{m.sub}</div>
+              {m.sparkline?.length >= 2 && (
+                <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
+                  <Sparkline points={m.sparkline} width={64} height={20} />
+                </div>
+              )}
+            </div>
+          </Tooltip>
+        ))}
       </div>
 
-      {/* Progress bar + agreement */}
-      <div className="flex items-center gap-3" style={{ marginTop: 12 }}>
-        <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+      {/* Action label + reasoning */}
+      <div style={{ marginBottom: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color }}>{label}</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5, opacity: 0.8 }}>
+        {reasoning}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ marginTop: 10 }}>
+        <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
-        <Tooltip content={agreementTooltip}>
-          <span style={{ fontSize: 10, color: 'var(--text-body)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-            {agreement}% TF agreement
-          </span>
-        </Tooltip>
       </div>
+
+      {/* Conflict warning */}
+      {hasConflict && (() => {
+        const h4Side = h4Score >= 50 ? 'bullish' : 'bearish';
+        const dSide = dScore >= 50 ? 'bullish' : 'bearish';
+        return (
+          <div className="flex items-start gap-2" style={{ marginTop: 10 }}>
+            <span style={{ color: 'var(--amber)', fontSize: 14, lineHeight: 1 }}>!</span>
+            <span style={{ fontSize: 11, color: 'var(--text-body)', lineHeight: 1.5 }}>
+              Conflict — 4H {h4Side}, Daily {dSide}. Await resolution before sizing in.
+            </span>
+          </div>
+        );
+      })()}
     </div>
   );
 }

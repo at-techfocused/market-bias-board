@@ -6,32 +6,58 @@ export default function EntryStopTarget({ signals, activeTf }) {
 
   const close = active.close;
   const atr = active.atr;
+  if (atr == null) return null;
+
   const isBull = active.score > 50;
   const entry = close;
-  const stop = atr != null ? (isBull ? close - atr * 1.5 : close + atr * 1.5) : null;
-  const target = atr != null ? (isBull ? close + atr * 3 : close - atr * 3) : null;
-  const stopPct = stop != null ? Math.abs((stop - entry) / entry * 100) : null;
-  const targetPct = target != null ? Math.abs((target - entry) / entry * 100) : null;
-  const rr = stopPct != null && stopPct > 0 ? (targetPct / stopPct) : null;
+  const stop = isBull ? close - atr * 1.5 : close + atr * 1.5;
+  const target = isBull ? close + atr * 3 : close - atr * 3;
+  const stopPct = Math.abs((stop - entry) / entry * 100);
+  const targetPct = Math.abs((target - entry) / entry * 100);
+  const rr = stopPct > 0 ? (targetPct / stopPct) : null;
 
-  const cols = [
-    { label: 'ENTRY', value: entry, color: 'var(--text-primary)', accent: 'var(--border)', sub: 'market' },
-    { label: 'STOP', value: stop, color: 'var(--red)', accent: 'var(--red)', sub: stopPct != null ? `${stopPct.toFixed(1)}% · 1.5× ATR` : '--' },
-    { label: 'TARGET', value: target, color: 'var(--green)', accent: 'var(--green)', sub: targetPct != null ? `${targetPct.toFixed(1)}% · R:R ${rr != null ? rr.toFixed(1) : '--'}:1` : '--' },
+  const columns = [
+    {
+      label: 'ENTRY',
+      price: entry,
+      borderColor: '#1c2e3d',
+      borderWidth: 1,
+      sub: `${isBull ? 'LONG' : 'SHORT'} · R:R ${rr != null ? rr.toFixed(1) : '--'}:1`,
+    },
+    {
+      label: 'STOP',
+      price: stop,
+      borderColor: '#e05555',
+      borderWidth: 2,
+      sub: `-${stopPct.toFixed(1)}% · ${(atr * 1.5).toFixed(2)} ATR`,
+    },
+    {
+      label: 'TARGET',
+      price: target,
+      borderColor: '#5bc98a',
+      borderWidth: 2,
+      sub: `+${targetPct.toFixed(1)}% · ${(atr * 3).toFixed(2)} ATR`,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-4" style={{ padding: '0 16px 14px' }}>
-      {cols.map((col) => (
-        <div key={col.label}>
-          <div className="h-[2px] rounded-full" style={{ background: col.accent, marginBottom: 10 }} />
-          <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+    <div style={{ display: 'flex', gap: 8 }}>
+      {columns.map((col) => (
+        <div key={col.label} style={{
+          flex: 1,
+          borderTop: `${col.borderWidth}px solid ${col.borderColor}`,
+          paddingTop: 10,
+        }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.1em', marginBottom: 4 }}>
             {col.label}
           </div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: col.color, fontVariantNumeric: 'tabular-nums' }}>
-            ${fmtPrice(col.value)}
+          <div style={{
+            fontSize: 16, fontWeight: 700, color: 'var(--text-primary)',
+            fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginBottom: 4,
+          }}>
+            ${fmtPrice(col.price)}
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6 }}>
             {col.sub}
           </div>
         </div>
