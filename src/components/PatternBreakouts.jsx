@@ -142,13 +142,13 @@ export default function PatternBreakouts({ signals, activeTf }) {
                 <div className="flex-1 py-2.5 text-center" style={{ borderRight: '1px solid var(--border-inner)' }}>
                   <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>TGT</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                    ${fmtPrice(pattern.direction === 'BULL' ? active.close + active.atr * 2 : active.close - active.atr * 2)}
+                    ${fmtPrice(pattern.direction === 'BULL' ? active.close + active.atr * 3 : active.close - active.atr * 3)}
                   </div>
                 </div>
                 <div className="flex-1 py-2.5 text-center">
                   <div style={{ fontSize: 10, color: 'var(--text-body)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>STOP</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', fontVariantNumeric: 'tabular-nums' }}>
-                    ${fmtPrice(pattern.direction === 'BULL' ? active.close - active.atr : active.close + active.atr)}
+                    ${fmtPrice(pattern.direction === 'BULL' ? active.close - active.atr * 1.5 : active.close + active.atr * 1.5)}
                   </div>
                 </div>
               </>
