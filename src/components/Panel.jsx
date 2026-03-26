@@ -11,21 +11,8 @@ import SignalCardsGrid from './SignalCardsGrid';
 import PanelFooter from './PanelFooter';
 import CollapsibleSection from './CollapsibleSection';
 import { TF_KEYS, TF_DISPLAY, getBiasLabel, getBiasColor } from '../utils/format';
+import { getTickerName } from '../utils/tickers';
 
-const ASSET_NAMES = {
-  'BINANCE:BTCUSDT': 'Bitcoin',
-  'BINANCE:ETHUSDT': 'Ethereum',
-  'BINANCE:SOLUSDT': 'Solana',
-  AAPL: 'Apple Inc.',
-  TSLA: 'Tesla Inc.',
-  MSFT: 'Microsoft',
-  AMZN: 'Amazon',
-  GOOG: 'Alphabet',
-  NVDA: 'NVIDIA',
-  META: 'Meta Platforms',
-  SPY: 'S&P 500 ETF',
-  QQQ: 'Nasdaq 100 ETF',
-};
 
 const card = {
   background: '#0f1923',
@@ -65,7 +52,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
   const isLoading = data?.['1H']?.loading || data?.['4H']?.loading || data?.D?.loading;
   const allErrors = TF_KEYS.every((tf) => data?.[tf]?.error && !data?.[tf]?.loading);
 
-  const displayName = ASSET_NAMES[ticker] || ticker;
+  const displayName = getTickerName(ticker);
   const tickerShort = ticker.includes(':') ? ticker.split(':')[1] : ticker;
 
   if (isLoading && !active) {
@@ -112,7 +99,7 @@ export default function Panel({ signals, data, lastFetch, ticker, activeTf, onTf
               title={`${biasLabel} BIAS · ${TF_DISPLAY[activeTf]}`}
               badge={<span style={{ fontSize: 13, fontWeight: 700, color: biasColor, fontFamily: "'Georgia', serif" }}>{active?.score ?? '--'}</span>}
             >
-              <HeroBlock signals={signals} activeTf={activeTf} />
+              <HeroBlock signals={signals} activeTf={activeTf} tickerName={displayName} tickerShort={tickerShort} />
             </CollapsibleSection>
           </Card>
 

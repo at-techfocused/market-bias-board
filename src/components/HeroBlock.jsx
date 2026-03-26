@@ -103,7 +103,7 @@ function getBreakdown(signals) {
   ];
 }
 
-export default function HeroBlock({ signals, activeTf }) {
+export default function HeroBlock({ signals, activeTf, tickerName, tickerShort }) {
   const active = signals?.[activeTf];
   if (!active) return null;
 
@@ -155,6 +155,15 @@ export default function HeroBlock({ signals, activeTf }) {
 
   return (
     <div style={{ padding: '4px 16px 14px' }}>
+      {/* Ticker identity */}
+      {tickerName && (
+        <div style={{ marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{tickerShort || tickerName}</span>
+          {tickerShort && tickerName !== tickerShort && (
+            <span style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.5 }}>{tickerName}</span>
+          )}
+        </div>
+      )}
       {/* Metrics row: SCORE, ADX, VOL */}
       <div className="grid grid-cols-3 gap-2" style={{ marginBottom: 10 }}>
         {metrics.map((m) => (
