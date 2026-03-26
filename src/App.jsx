@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TopBar from './components/TopBar';
-import TradingViewWidget from './components/TradingViewWidget';
+import BiasChart from './components/BiasChart';
 import Panel from './components/Panel';
 import TickerCompare from './components/TickerCompare';
 import WeightSettings, { loadWeights } from './components/WeightSettings';
@@ -52,10 +52,8 @@ export default function App() {
   const scoreHistory = useScoreHistory(signals);
   const isMobile = useIsMobile();
 
-  const chartInterval = useMemo(() => {
-    const map = { '1H': '60', '4H': '240', D: 'D' };
-    return map[activeTf] || '240';
-  }, [activeTf]);
+  // Candles for the active timeframe (passed to chart)
+  const activeCandles = data?.[activeTf]?.candles;
 
   useEffect(() => {
     loadTicker(activeTicker);
@@ -133,7 +131,7 @@ export default function App() {
             display: isMobile && mobileView !== 'chart' ? 'none' : 'flex',
           }}
         >
-          <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
+          <BiasChart candles={activeCandles} signals={signals} activeTf={activeTf} />
         </div>
         {/* Panel */}
         <div
