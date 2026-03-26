@@ -113,6 +113,12 @@ export default function Panel({ signals, data, lastFetch, isStale, scoreHistory,
           </Card>
 
           <Card>
+            <CollapsibleSection title={`BACKTEST · ${TF_DISPLAY[activeTf]}`} defaultOpen={false}>
+              <BacktestPanel data={data} activeTf={activeTf} weights={weights} />
+            </CollapsibleSection>
+          </Card>
+
+          <Card>
             <CollapsibleSection title={`SIGNALS · ${TF_DISPLAY[activeTf]}`}>
               <SignalRows signals={signals} activeTf={activeTf} />
             </CollapsibleSection>
@@ -154,11 +160,6 @@ export default function Panel({ signals, data, lastFetch, isStale, scoreHistory,
             </CollapsibleSection>
           </Card>
 
-          <Card>
-            <CollapsibleSection title={`BACKTEST · ${TF_DISPLAY[activeTf]}`} defaultOpen={false}>
-              <BacktestPanel data={data} activeTf={activeTf} weights={weights} />
-            </CollapsibleSection>
-          </Card>
 
         </div>
       </div>
