@@ -95,7 +95,7 @@ function getBreakdown(signals) {
   const rows = [
     { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 10, max: 20, detail: signals.emaStack },
     { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : signals.smma99 === 'NEAR' ? 10 : 0, max: 20, detail: signals.smma99 },
-    { label: 'RSI Zone', value: signals.rsiZone === 'BULLISH' ? 20 : signals.rsiZone === 'BEARISH' ? 0 : 10, max: 20, detail: `${signals.rsi} (${signals.rsiZone})` },
+    { label: 'RSI', value: Math.round((signals.rsiScore ?? 0.5) * 20), max: 20, detail: `${signals.rsi} (${signals.rsiZone})` },
     { label: 'MACD', value: signals.macdDirection === 'BULL' ? 20 : signals.macdDirection === 'BEAR' ? 0 : 10, max: 20, detail: signals.macdDirection },
   ];
   if (signals.pattern) {
