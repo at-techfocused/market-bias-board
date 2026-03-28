@@ -155,6 +155,13 @@ function getRSIZone(rsi) {
   return 'NEUTRAL';
 }
 
+// Continuous RSI score: linear gradient from 0.0 (RSI ≤30) to 1.0 (RSI ≥70)
+// RSI 50 = 0.5 (neutral). Clamped at extremes.
+function getRSIScore(rsi) {
+  if (rsi == null) return 0.5;
+  return Math.max(0, Math.min(1, (rsi - 30) / 40));
+}
+
 function getMACDDirection(macdData) {
   if (!macdData) return 'NEUTRAL';
   if (macdData.histogram > 0 && macdData.macd > macdData.signal) return 'BULL';
@@ -363,13 +370,13 @@ function detectPattern(candles) {
 // weights: { ema, smma, rsi, macd, pattern } — each 0-40, default 20
 const DEFAULT_WEIGHTS = { ema: 20, smma: 20, rsi: 20, macd: 20, pattern: 20 };
 
-function calcScore(emaStack, smmaPos, rsiZone, pattern, macdDir, adx, volRatio, weights) {
+function calcScore(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio, weights) {
   const w = weights || DEFAULT_WEIGHTS;
 
   // Normalized component scores (0.0 to 1.0 each)
   const emaRaw = emaStack === 'BULL' ? 1 : emaStack === 'BEAR' ? 0 : 0.5;
   const smmaRaw = smmaPos === 'ABOVE' ? 1 : smmaPos === 'NEAR' ? 0.5 : 0;
-  const rsiRaw = rsiZone === 'BULLISH' ? 1 : rsiZone === 'BEARISH' ? 0 : 0.5;
+  const rsiRaw = rsiScore; // continuous 0.0–1.0 from getRSIScore()
   const macdRaw = macdDir === 'BULL' ? 1 : macdDir === 'BEAR' ? 0 : 0.5;
 
   let totalWeight = w.ema + w.smma + w.rsi + w.macd;
@@ -488,8 +495,9 @@ export function computeSignals(candles, weights) {
   const emaStack = getEMAStack(close, ema20, ema50, ema100, ema200);
   const smmaPosition = getSMMAPosition(close, smma99, atr);
   const rsiZone = getRSIZone(rsi);
+  const rsiScore = getRSIScore(rsi);
   const macdDirection = getMACDDirection(macdData);
-  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiZone, pattern, macdDirection, adx, volRatio, weights);
+  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio, weights);
 
   const atrPct = atr != null ? (atr / close) * 100 : null;
   const bbPct = bb != null ? ((close - bb.lower) / (bb.upper - bb.lower)) * 100 : null;
@@ -501,6 +509,7 @@ export function computeSignals(candles, weights) {
     smma99Value: smma99,
     rsi: rsi != null ? parseFloat(rsi.toFixed(1)) : null,
     rsiZone,
+    rsiScore,
     pattern,
     macd: macdData,
     macdDirection,
