@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 const MAX_POINTS = 20;
+const DELTA_LOOKBACK = 5;
 
 export function useScoreHistory(signals) {
   const [history, setHistory] = useState({
@@ -18,7 +19,8 @@ export function useScoreHistory(signals) {
       const score = signals[tf]?.score;
       if (score != null && score !== prevScores.current[tf]) {
         prevScores.current[tf] = score;
-        updated[tf] = [...updated[tf], { score, time: Date.now() }].slice(-MAX_POINTS);
+        const points = [...updated[tf], { score, time: Date.now() }].slice(-MAX_POINTS);
+        updated[tf] = points;
         changed = true;
       }
     }
@@ -27,4 +29,13 @@ export function useScoreHistory(signals) {
   }, [signals]);
 
   return history;
+}
+
+// Derive score delta from history points
+export function getScoreDelta(historyPoints) {
+  if (!historyPoints || historyPoints.length < DELTA_LOOKBACK + 1) return null;
+  const current = historyPoints[historyPoints.length - 1].score;
+  const past = historyPoints[historyPoints.length - 1 - DELTA_LOOKBACK]?.score;
+  if (past == null) return null;
+  return current - past;
 }

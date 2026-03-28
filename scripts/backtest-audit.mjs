@@ -39,6 +39,12 @@ const BATCH_DELAY = parseInt(process.env.BATCH_DELAY || '2000');
 const TF_KEYS = (process.env.TIMEFRAMES || '1H,4H,D').split(',');
 const TF_RESOLUTION = { '1H': '60', '4H': '240', D: 'D' };
 
+// Timeframe-scaled forward periods (variant B)
+const TF_FORWARD = { '1H': 12, '4H': 5, D: 3 };
+
+// Score delta lookback (how many windows back to measure momentum)
+const DELTA_LOOKBACK = 5;
+
 // ─── Yahoo symbol aliases ───
 const YAHOO_ALIASES = {
   WTI: 'CL=F', USOIL: 'CL=F', BRENT: 'BZ=F', XAUUSD: 'GC=F',
@@ -358,6 +364,7 @@ function computeSignals(candles) {
 
 // ─── Backtest Runner ───
 
+// Collects raw score + forward return data for a given forward period
 function runBacktest(candles, lookForward) {
   if (!candles || candles.length < 201) return [];
   const results = [];
@@ -375,7 +382,8 @@ function runBacktest(candles, lookForward) {
   return results;
 }
 
-function analyzeResults(results) {
+// ─── Strategy A: Baseline (absolute score > 50 = bull) ───
+function analyzeBaseline(results) {
   const withFwd = results.filter((r) => r.fwdReturn != null);
   if (withFwd.length < 5) return null;
 
@@ -395,7 +403,6 @@ function analyzeResults(results) {
   }
 
   const avg = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const scores = results.map((r) => r.score);
   const bullSignals = withFwd.filter((r) => r.score >= 60);
   const bearSignals = withFwd.filter((r) => r.score <= 40);
 
@@ -403,9 +410,6 @@ function analyzeResults(results) {
     dataPoints: results.length,
     signalsWithForward: withFwd.length,
     accuracy: parseFloat(((correct / withFwd.length) * 100).toFixed(1)),
-    avgScore: Math.round(avg(scores)),
-    minScore: Math.min(...scores),
-    maxScore: Math.max(...scores),
     bullWinRate: bullSignals.length ? parseFloat(((bullSignals.filter((r) => r.fwdReturn > 0).length / bullSignals.length) * 100).toFixed(1)) : null,
     bearWinRate: bearSignals.length ? parseFloat(((bearSignals.filter((r) => r.fwdReturn < 0).length / bearSignals.length) * 100).toFixed(1)) : null,
     zones: {
@@ -415,6 +419,60 @@ function analyzeResults(results) {
       bear: { count: zones.bear.length, avgReturn: parseFloat(avg(zones.bear).toFixed(3)) },
       strongBear: { count: zones.strongBear.length, avgReturn: parseFloat(avg(zones.strongBear).toFixed(3)) },
     },
+  };
+}
+
+// ─── Strategy B: Score Delta (predict based on score momentum) ───
+// Combines absolute level + momentum: score > 50 AND delta > 0 → bull call
+// Only measures accuracy on directional calls (skips neutral — "no trade" signal)
+function analyzeScoreDelta(results) {
+  const withFwd = results.filter((r) => r.fwdReturn != null);
+  if (withFwd.length < DELTA_LOOKBACK + 1) return null;
+
+  let correct = 0, directional = 0;
+  let bullCorrect = 0, bullTotal = 0;
+  let bearCorrect = 0, bearTotal = 0;
+  let neutralCount = 0;
+
+  for (let i = DELTA_LOOKBACK; i < withFwd.length; i++) {
+    const current = withFwd[i];
+    const past = withFwd[i - DELTA_LOOKBACK];
+    const delta = current.score - past.score;
+    const actual = current.fwdReturn > 0 ? 'bull' : 'bear';
+
+    // Momentum + level combined signal
+    if (delta > 0 && current.score >= 50) {
+      directional++; bullTotal++;
+      if (actual === 'bull') { correct++; bullCorrect++; }
+    } else if (delta < 0 && current.score <= 50) {
+      directional++; bearTotal++;
+      if (actual === 'bear') { correct++; bearCorrect++; }
+    } else {
+      neutralCount++; // No trade signal — excluded from accuracy
+    }
+  }
+
+  if (directional < 5) return null;
+  const totalBars = withFwd.length - DELTA_LOOKBACK;
+
+  return {
+    dataPoints: results.length,
+    signalsWithForward: directional,
+    selectivity: parseFloat(((directional / totalBars) * 100).toFixed(1)), // % of bars that produce a signal
+    accuracy: parseFloat(((correct / directional) * 100).toFixed(1)),
+    bullWinRate: bullTotal ? parseFloat(((bullCorrect / bullTotal) * 100).toFixed(1)) : null,
+    bearWinRate: bearTotal ? parseFloat(((bearCorrect / bearTotal) * 100).toFixed(1)) : null,
+  };
+}
+
+// ─── Strategy C: Score Delta + TF-scaled forward (combined) ───
+// Same as B but forward period already scaled per-TF in the data collection step
+
+// Convenience: analyze all strategies on the same raw results
+function analyzeAll(results) {
+  return {
+    baseline: analyzeBaseline(results),
+    scoreDelta: analyzeScoreDelta(results),
   };
 }
 
@@ -428,13 +486,19 @@ async function main() {
   const filterTickers = process.env.TICKERS?.split(',').map((t) => t.trim());
   const tickers = filterTickers || TICKER_LIST;
 
-  console.log(`\n╔══════════════════════════════════════════════════╗`);
-  console.log(`║       BiasBoard Backtest Audit                   ║`);
-  console.log(`╠══════════════════════════════════════════════════╣`);
-  console.log(`║  Tickers:    ${String(tickers.length).padEnd(5)} Timeframes: ${TF_KEYS.join(', ').padEnd(13)} ║`);
-  console.log(`║  Forward:    ${String(FORWARD_BARS).padEnd(5)} Batch size: ${String(BATCH_SIZE).padEnd(13)} ║`);
-  console.log(`╚══════════════════════════════════════════════════╝\n`);
+  // Strategy names for reporting
+  const STRATEGIES = ['baseline', 'scoreDelta', 'tfScaled', 'tfScaled+delta'];
 
+  console.log(`\n╔══════════════════════════════════════════════════════════════╗`);
+  console.log(`║       BiasBoard Backtest Audit — A/B Variant Test           ║`);
+  console.log(`╠══════════════════════════════════════════════════════════════╣`);
+  console.log(`║  Tickers:    ${String(tickers.length).padEnd(5)} Timeframes: ${TF_KEYS.join(', ').padEnd(20)} ║`);
+  console.log(`║  Forward A:  ${String(FORWARD_BARS).padEnd(5)} Forward B:  ${TF_KEYS.map(tf => `${tf}=${TF_FORWARD[tf]}`).join(', ').padEnd(20)} ║`);
+  console.log(`║  Delta LB:   ${String(DELTA_LOOKBACK).padEnd(5)} Batch size: ${String(BATCH_SIZE).padEnd(20)} ║`);
+  console.log(`║  Strategies: baseline | scoreDelta | tfScaled | combined   ║`);
+  console.log(`╚══════════════════════════════════════════════════════════════╝\n`);
+
+  // allResults[ticker][tf] = { fixedFwd: rawResults, scaledFwd: rawResults }
   const allResults = {};
   const errors = [];
   let completed = 0;
@@ -449,9 +513,10 @@ async function main() {
         const res = TF_RESOLUTION[tf];
         try {
           const candles = await fetchCandles(ticker, res);
-          const backtestData = runBacktest(candles, FORWARD_BARS);
-          const stats = analyzeResults(backtestData);
-          tickerResults[tf] = stats;
+          // Run backtest twice: once with fixed forward, once with TF-scaled forward
+          const fixedFwd = runBacktest(candles, FORWARD_BARS);
+          const scaledFwd = runBacktest(candles, TF_FORWARD[tf] || FORWARD_BARS);
+          tickerResults[tf] = { fixedFwd, scaledFwd };
         } catch (err) {
           tickerResults[tf] = null;
           errors.push({ ticker, tf, error: err.message });
@@ -474,75 +539,130 @@ async function main() {
 
   console.log('\n');
 
-  // ─── Aggregate stats ───
-  const aggregate = { byTimeframe: {}, byAssetType: {}, overall: { accuracies: [], bullWins: [], bearWins: [] } };
-
-  for (const tf of TF_KEYS) {
-    aggregate.byTimeframe[tf] = { accuracies: [], bullWins: [], bearWins: [] };
+  // ─── Analyze all strategies ───
+  // For each strategy, build aggregate stats
+  const stratAgg = {};
+  for (const s of STRATEGIES) {
+    stratAgg[s] = {
+      overall: { accuracies: [], bullWins: [], bearWins: [] },
+      byTimeframe: Object.fromEntries(TF_KEYS.map(tf => [tf, { accuracies: [], bullWins: [], bearWins: [] }])),
+      byAssetType: {},
+    };
   }
 
+  // Per-ticker analyzed results for table output
+  const analyzed = {}; // analyzed[ticker][tf] = { baseline, scoreDelta, tfScaled, 'tfScaled+delta' }
+
   for (const [ticker, tfResults] of Object.entries(allResults)) {
+    analyzed[ticker] = {};
     const assetType = isCrypto(ticker) ? 'crypto' : (YAHOO_ALIASES[ticker.toUpperCase()] ? 'commodity' : 'equity');
-    if (!aggregate.byAssetType[assetType]) aggregate.byAssetType[assetType] = { accuracies: [], bullWins: [], bearWins: [] };
 
     for (const tf of TF_KEYS) {
-      const stats = tfResults[tf];
-      if (!stats) continue;
-      aggregate.byTimeframe[tf].accuracies.push(stats.accuracy);
-      aggregate.byAssetType[assetType].accuracies.push(stats.accuracy);
-      aggregate.overall.accuracies.push(stats.accuracy);
-      if (stats.bullWinRate != null) {
-        aggregate.byTimeframe[tf].bullWins.push(stats.bullWinRate);
-        aggregate.byAssetType[assetType].bullWins.push(stats.bullWinRate);
-        aggregate.overall.bullWins.push(stats.bullWinRate);
-      }
-      if (stats.bearWinRate != null) {
-        aggregate.byTimeframe[tf].bearWins.push(stats.bearWinRate);
-        aggregate.byAssetType[assetType].bearWins.push(stats.bearWinRate);
-        aggregate.overall.bearWins.push(stats.bearWinRate);
+      const raw = tfResults[tf];
+      if (!raw) { analyzed[ticker][tf] = null; continue; }
+
+      const result = {
+        baseline: analyzeBaseline(raw.fixedFwd),         // A: original (fixed fwd, absolute score)
+        scoreDelta: analyzeScoreDelta(raw.fixedFwd),     // B: fixed fwd + score delta signal
+        tfScaled: analyzeBaseline(raw.scaledFwd),        // C: TF-scaled fwd + absolute score
+        'tfScaled+delta': analyzeScoreDelta(raw.scaledFwd), // D: TF-scaled fwd + score delta
+      };
+      analyzed[ticker][tf] = result;
+
+      // Aggregate per-strategy
+      for (const s of STRATEGIES) {
+        const stats = result[s];
+        if (!stats) continue;
+        if (!stratAgg[s].byAssetType[assetType]) stratAgg[s].byAssetType[assetType] = { accuracies: [], bullWins: [], bearWins: [] };
+
+        stratAgg[s].overall.accuracies.push(stats.accuracy);
+        stratAgg[s].byTimeframe[tf].accuracies.push(stats.accuracy);
+        stratAgg[s].byAssetType[assetType].accuracies.push(stats.accuracy);
+        if (stats.bullWinRate != null) {
+          stratAgg[s].overall.bullWins.push(stats.bullWinRate);
+          stratAgg[s].byTimeframe[tf].bullWins.push(stats.bullWinRate);
+          stratAgg[s].byAssetType[assetType].bullWins.push(stats.bullWinRate);
+        }
+        if (stats.bearWinRate != null) {
+          stratAgg[s].overall.bearWins.push(stats.bearWinRate);
+          stratAgg[s].byTimeframe[tf].bearWins.push(stats.bearWinRate);
+          stratAgg[s].byAssetType[assetType].bearWins.push(stats.bearWinRate);
+        }
       }
     }
   }
 
   const avg = (arr) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : '--';
 
-  // ─── Print Summary ───
-  console.log('═══════════════════════════════════════════════════════════════');
-  console.log('  AGGREGATE RESULTS');
-  console.log('═══════════════════════════════════════════════════════════════');
-  console.log(`  Overall Accuracy:   ${avg(aggregate.overall.accuracies)}%  (${aggregate.overall.accuracies.length} ticker-TF combos)`);
-  console.log(`  Bull Win Rate:      ${avg(aggregate.overall.bullWins)}%`);
-  console.log(`  Bear Win Rate:      ${avg(aggregate.overall.bearWins)}%`);
+  // ─── Print A/B Comparison ───
+  console.log('╔══════════════════════════════════════════════════════════════════════════════╗');
+  console.log('║                        STRATEGY A/B COMPARISON                              ║');
+  console.log('╚══════════════════════════════════════════════════════════════════════════════╝');
+  console.log('');
+  console.log('  ' + 'STRATEGY'.padEnd(20) + 'Accuracy'.padStart(10) + 'Bull Win'.padStart(10) + 'Bear Win'.padStart(10) + '  n');
+  console.log('  ' + '─'.repeat(55));
+  for (const s of STRATEGIES) {
+    const d = stratAgg[s].overall;
+    console.log(`  ${s.padEnd(20)}${(avg(d.accuracies) + '%').padStart(10)}${(avg(d.bullWins) + '%').padStart(10)}${(avg(d.bearWins) + '%').padStart(10)}  ${d.accuracies.length}`);
+  }
+
+  // Find winner
+  const stratAccuracies = STRATEGIES.map(s => ({ name: s, acc: stratAgg[s].overall.accuracies.length ? parseFloat(avg(stratAgg[s].overall.accuracies)) : 0 }));
+  stratAccuracies.sort((a, b) => b.acc - a.acc);
+  const best = stratAccuracies[0];
+  const baseline = stratAccuracies.find(s => s.name === 'baseline');
+  console.log('');
+  console.log(`  WINNER: ${best.name} (${best.acc}%)  vs baseline (${baseline.acc}%)  delta: ${(best.acc - baseline.acc).toFixed(1)}pp`);
   console.log('');
 
+  // ─── Per-timeframe breakdown per strategy ───
   console.log('  BY TIMEFRAME:');
+  console.log('  ' + 'TF'.padEnd(8) + STRATEGIES.map(s => s.padStart(16)).join(''));
+  console.log('  ' + '─'.repeat(8 + STRATEGIES.length * 16));
   for (const tf of TF_KEYS) {
-    const d = aggregate.byTimeframe[tf];
-    console.log(`    ${tf.padEnd(6)} Accuracy: ${avg(d.accuracies).padStart(5)}%   Bull: ${avg(d.bullWins).padStart(5)}%   Bear: ${avg(d.bearWins).padStart(5)}%   (n=${d.accuracies.length})`);
+    let line = '  ' + tf.padEnd(8);
+    for (const s of STRATEGIES) {
+      const d = stratAgg[s].byTimeframe[tf];
+      line += (avg(d.accuracies) + '%').padStart(16);
+    }
+    console.log(line);
   }
   console.log('');
 
+  // ─── Per-asset-type breakdown per strategy ───
   console.log('  BY ASSET TYPE:');
-  for (const [type, d] of Object.entries(aggregate.byAssetType)) {
-    console.log(`    ${type.padEnd(12)} Accuracy: ${avg(d.accuracies).padStart(5)}%   Bull: ${avg(d.bullWins).padStart(5)}%   Bear: ${avg(d.bearWins).padStart(5)}%   (n=${d.accuracies.length})`);
+  const assetTypes = [...new Set(STRATEGIES.flatMap(s => Object.keys(stratAgg[s].byAssetType)))];
+  console.log('  ' + 'TYPE'.padEnd(12) + STRATEGIES.map(s => s.padStart(16)).join(''));
+  console.log('  ' + '─'.repeat(12 + STRATEGIES.length * 16));
+  for (const type of assetTypes) {
+    let line = '  ' + type.padEnd(12);
+    for (const s of STRATEGIES) {
+      const d = stratAgg[s].byAssetType[type];
+      line += (d ? avg(d.accuracies) + '%' : '--').padStart(16);
+    }
+    console.log(line);
   }
   console.log('');
 
-  // Per-ticker table
+  // ─── Per-ticker table (baseline vs best variant) ───
+  const bestStrat = best.name;
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('  PER-TICKER BREAKDOWN');
+  console.log(`  PER-TICKER: baseline vs ${bestStrat}`);
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('  ' + 'TICKER'.padEnd(16) + TF_KEYS.map((tf) => `${tf} Acc`.padStart(8) + `${tf} Bull`.padStart(9) + `${tf} Bear`.padStart(9)).join(''));
-  console.log('  ' + '─'.repeat(16 + TF_KEYS.length * 26));
+  console.log('  ' + 'TICKER'.padEnd(16) + TF_KEYS.map(tf => `${tf} base`.padStart(8) + `${tf} best`.padStart(8)).join(''));
+  console.log('  ' + '─'.repeat(16 + TF_KEYS.length * 16));
 
-  for (const [ticker, tfResults] of Object.entries(allResults)) {
+  for (const [ticker, tfResults] of Object.entries(analyzed)) {
     let line = '  ' + shortName(ticker).padEnd(16);
     for (const tf of TF_KEYS) {
-      const s = tfResults[tf];
-      if (s) {
-        line += `${String(s.accuracy + '%').padStart(8)}${String((s.bullWinRate ?? '--') + '%').padStart(9)}${String((s.bearWinRate ?? '--') + '%').padStart(9)}`;
+      const r = tfResults[tf];
+      if (r) {
+        const bAcc = r.baseline?.accuracy;
+        const vAcc = r[bestStrat]?.accuracy;
+        line += (bAcc != null ? bAcc + '%' : 'FAIL').padStart(8);
+        line += (vAcc != null ? vAcc + '%' : 'FAIL').padStart(8);
       } else {
-        line += '    FAIL'.padStart(8) + '        --'.padStart(9) + '        --'.padStart(9);
+        line += '    FAIL'.padStart(8) + '    FAIL'.padStart(8);
       }
     }
     console.log(line);
@@ -556,22 +676,40 @@ async function main() {
     if (errors.length > 20) console.log(`    ... and ${errors.length - 20} more`);
   }
 
+  // ─── Zone analysis for winning strategy (baseline only has zones) ───
+  console.log('');
+  console.log('  SCORE ZONE ANALYSIS (baseline — avg forward return per zone):');
+  for (const tf of TF_KEYS) {
+    const zoneAgg = { strongBull: [], bull: [], neutral: [], bear: [], strongBear: [] };
+    for (const [, tfResults] of Object.entries(analyzed)) {
+      const r = tfResults[tf]?.baseline;
+      if (!r?.zones) continue;
+      for (const z of Object.keys(zoneAgg)) {
+        if (r.zones[z].count > 0) zoneAgg[z].push(r.zones[z].avgReturn);
+      }
+    }
+    console.log(`    ${tf}:  strongBull(70+): ${avg(zoneAgg.strongBull)}%  bull(55-70): ${avg(zoneAgg.bull)}%  neutral(45-55): ${avg(zoneAgg.neutral)}%  bear(30-45): ${avg(zoneAgg.bear)}%  strongBear(<30): ${avg(zoneAgg.strongBear)}%`);
+  }
+
   // ─── Save JSON ───
   const outputPath = join(__dirname, 'backtest-results.json');
   const output = {
     meta: {
       date: new Date().toISOString(),
       forwardBars: FORWARD_BARS,
+      tfForward: TF_FORWARD,
+      deltaLookback: DELTA_LOOKBACK,
       timeframes: TF_KEYS,
       tickerCount: tickers.length,
       errorCount: errors.length,
+      strategies: STRATEGIES,
     },
-    aggregate: {
-      overall: { accuracy: avg(aggregate.overall.accuracies), bullWinRate: avg(aggregate.overall.bullWins), bearWinRate: avg(aggregate.overall.bearWins) },
-      byTimeframe: Object.fromEntries(TF_KEYS.map((tf) => [tf, { accuracy: avg(aggregate.byTimeframe[tf].accuracies), bullWinRate: avg(aggregate.byTimeframe[tf].bullWins), bearWinRate: avg(aggregate.byTimeframe[tf].bearWins), count: aggregate.byTimeframe[tf].accuracies.length }])),
-      byAssetType: Object.fromEntries(Object.entries(aggregate.byAssetType).map(([t, d]) => [t, { accuracy: avg(d.accuracies), bullWinRate: avg(d.bullWins), bearWinRate: avg(d.bearWins), count: d.accuracies.length }])),
-    },
-    tickers: allResults,
+    comparison: Object.fromEntries(STRATEGIES.map(s => [s, {
+      overall: { accuracy: avg(stratAgg[s].overall.accuracies), bullWinRate: avg(stratAgg[s].overall.bullWins), bearWinRate: avg(stratAgg[s].overall.bearWins), count: stratAgg[s].overall.accuracies.length },
+      byTimeframe: Object.fromEntries(TF_KEYS.map(tf => [tf, { accuracy: avg(stratAgg[s].byTimeframe[tf].accuracies), bullWinRate: avg(stratAgg[s].byTimeframe[tf].bullWins), bearWinRate: avg(stratAgg[s].byTimeframe[tf].bearWins), count: stratAgg[s].byTimeframe[tf].accuracies.length }])),
+      byAssetType: Object.fromEntries(Object.entries(stratAgg[s].byAssetType).map(([t, d]) => [t, { accuracy: avg(d.accuracies), bullWinRate: avg(d.bullWins), bearWinRate: avg(d.bearWins), count: d.accuracies.length }])),
+    }])),
+    tickers: analyzed,
     errors,
   };
 

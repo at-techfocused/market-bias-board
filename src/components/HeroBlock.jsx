@@ -1,5 +1,6 @@
 import { TF_DISPLAY, getScoreColor } from '../utils/format';
 import { applyConflictPenalty } from '../utils/indicators';
+import { getScoreDelta } from '../hooks/useScoreHistory';
 import Tooltip from './Tooltip';
 import Sparkline from './Sparkline';
 
@@ -168,11 +169,21 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort, 
   );
 
   const sparkPoints = scoreHistory?.[activeTf] || [];
+  const delta = getScoreDelta(sparkPoints);
+  const deltaArrow = delta != null ? (delta > 0 ? '+' : delta < 0 ? '' : '') : '';
+  const deltaColor = delta != null ? (delta > 0 ? 'var(--green)' : delta < 0 ? 'var(--red)' : 'var(--text-body)') : null;
+
+  // Momentum-aware signal: score level + direction
+  const momentumLabel = delta != null
+    ? (delta > 0 && score >= 50 ? 'RISING' : delta < 0 && score <= 50 ? 'FALLING' : 'FLAT')
+    : null;
 
   const metrics = [
     {
       label: 'SCORE', value: score, color: getSignalColor(score),
-      sub: `/ 100 · ${TF_DISPLAY[activeTf]}`,
+      sub: delta != null
+        ? <span>{`/ 100 · ${TF_DISPLAY[activeTf]} `}<span style={{ color: deltaColor, fontWeight: 700 }}>{deltaArrow}{delta}</span></span>
+        : `/ 100 · ${TF_DISPLAY[activeTf]}`,
       tip: scoreTooltip,
       sparkline: sparkPoints,
     },
@@ -222,12 +233,24 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort, 
         ))}
       </div>
 
-      {/* Action label + reasoning */}
-      <div style={{ marginBottom: 2 }}>
+      {/* Action label + momentum badge */}
+      <div style={{ marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color }}>{label}</span>
+        {momentumLabel && (
+          <span style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+            padding: '1px 5px', borderRadius: 3,
+            background: momentumLabel === 'RISING' ? 'rgba(34,197,94,0.15)' : momentumLabel === 'FALLING' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.05)',
+            color: momentumLabel === 'RISING' ? 'var(--green)' : momentumLabel === 'FALLING' ? 'var(--red)' : 'var(--text-body)',
+          }}>
+            {momentumLabel === 'RISING' ? 'MOMENTUM UP' : momentumLabel === 'FALLING' ? 'MOMENTUM DOWN' : 'FLAT'}
+          </span>
+        )}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.5, opacity: 0.8 }}>
         {reasoning}
+        {momentumLabel === 'RISING' && ' Score momentum rising — higher conviction.'}
+        {momentumLabel === 'FALLING' && ' Score momentum falling — caution advised.'}
       </div>
 
       {/* Progress bar */}

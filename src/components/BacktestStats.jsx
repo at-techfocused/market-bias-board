@@ -100,6 +100,32 @@ export default function BacktestStats({ results }) {
       return zone.returns.reduce((a, b) => a + b, 0) / zone.returns.length;
     };
 
+    // Momentum (score delta) accuracy
+    const DELTA_LB = 5;
+    let deltaCorrect = 0, deltaTotal = 0;
+    let deltaBullCorrect = 0, deltaBullTotal = 0;
+    let deltaBearCorrect = 0, deltaBearTotal = 0;
+
+    for (let i = DELTA_LB; i < withFwd.length; i++) {
+      const r = withFwd[i];
+      const prev = withFwd[i - DELTA_LB];
+      if (!prev) continue;
+      const d = r.score - prev.score;
+      const actual = r.fwdReturn > 0 ? 'bull' : 'bear';
+
+      if (d > 0 && r.score >= 50) {
+        deltaTotal++; deltaBullTotal++;
+        if (actual === 'bull') { deltaCorrect++; deltaBullCorrect++; }
+      } else if (d < 0 && r.score <= 50) {
+        deltaTotal++; deltaBearTotal++;
+        if (actual === 'bear') { deltaCorrect++; deltaBearCorrect++; }
+      }
+    }
+
+    const deltaAccuracy = deltaTotal >= 5 ? ((deltaCorrect / deltaTotal) * 100).toFixed(1) : null;
+    const deltaBullWin = deltaBullTotal >= 3 ? ((deltaBullCorrect / deltaBullTotal) * 100).toFixed(0) : '--';
+    const deltaBearWin = deltaBearTotal >= 3 ? ((deltaBearCorrect / deltaBearTotal) * 100).toFixed(0) : '--';
+
     return {
       total: withFwd.length,
       accuracy,
@@ -111,6 +137,10 @@ export default function BacktestStats({ results }) {
       avgBullReturn,
       avgBearReturn,
       fwdCandles: withFwd[0]?.fwdCandles || 5,
+      deltaAccuracy,
+      deltaBullWin,
+      deltaBearWin,
+      deltaSignals: deltaTotal,
       zones: {
         strongBull: { ...zones.strongBull, avgReturn: avgZoneReturn(zones.strongBull) },
         bull: { ...zones.bull, avgReturn: avgZoneReturn(zones.bull) },
@@ -158,6 +188,36 @@ export default function BacktestStats({ results }) {
           color={getScoreColor(parseInt(stats.avgScore))}
         />
       </div>
+
+      {/* Momentum accuracy */}
+      {stats.deltaAccuracy && (
+        <div className="grid grid-cols-4 gap-1.5" style={{ marginBottom: 10 }}>
+          <StatBox
+            label="Momentum"
+            value={`${stats.deltaAccuracy}%`}
+            sub={`${stats.deltaSignals} signals`}
+            color={parseFloat(stats.deltaAccuracy) >= 55 ? 'var(--green)' : parseFloat(stats.deltaAccuracy) < 45 ? 'var(--red)' : 'var(--amber)'}
+          />
+          <StatBox
+            label="Mtm Bull"
+            value={`${stats.deltaBullWin}%`}
+            sub="rising + >50"
+            color={parseInt(stats.deltaBullWin) >= 55 ? 'var(--green)' : 'var(--amber)'}
+          />
+          <StatBox
+            label="Mtm Bear"
+            value={`${stats.deltaBearWin}%`}
+            sub="falling + <50"
+            color={parseInt(stats.deltaBearWin) >= 55 ? 'var(--green)' : 'var(--amber)'}
+          />
+          <StatBox
+            label="Mtm Edge"
+            value={`${(parseFloat(stats.deltaAccuracy) - parseFloat(stats.accuracy) >= 0 ? '+' : '')}${(parseFloat(stats.deltaAccuracy) - parseFloat(stats.accuracy)).toFixed(1)}pp`}
+            sub="vs baseline"
+            color={parseFloat(stats.deltaAccuracy) > parseFloat(stats.accuracy) ? 'var(--green)' : 'var(--red)'}
+          />
+        </div>
+      )}
 
       {/* Zone breakdown */}
       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-body)', letterSpacing: '0.08em', marginBottom: 4 }}>

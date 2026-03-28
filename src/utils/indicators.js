@@ -430,6 +430,8 @@ export { applyConflictPenalty };
 // ── Backtest: replay scoring across historical candles ──
 // Slides a 200-candle window forward one candle at a time,
 // computing the full signal set at each point.
+const DELTA_LOOKBACK = 5;
+
 export function runBacktest(candles, weights, lookForward = 5) {
   if (!candles || candles.length < 201) return [];
 
@@ -452,10 +454,15 @@ export function runBacktest(candles, weights, lookForward = 5) {
       fwdCandles = lookForward;
     }
 
+    // Score delta: momentum of the score over last N windows
+    const prevIdx = results.length - DELTA_LOOKBACK;
+    const scoreDelta = prevIdx >= 0 ? signals.score - results[prevIdx].score : 0;
+
     results.push({
       time: currentCandle.t,
       close: currentCandle.c,
       score: signals.score,
+      scoreDelta,
       emaStack: signals.emaStack,
       rsiZone: signals.rsiZone,
       macdDirection: signals.macdDirection,
