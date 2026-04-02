@@ -6,16 +6,17 @@ import Sparkline from './Sparkline';
 
 function getActionLabel(score, hasConflict) {
   if (hasConflict) {
-    if (score <= 45) return 'BEAR BIAS';
-    if (score <= 55) return 'NEUTRAL';
-    return 'BULL BIAS';
+    if (score <= 45) return 'BEARISH — CONFLICTING';
+    if (score <= 55) return 'NEUTRAL — CONFLICTING';
+    return 'BULLISH — CONFLICTING';
   }
-  if (score <= 20) return 'STRONG SHORT';
-  if (score <= 35) return 'SHORT BIAS';
-  if (score <= 45) return 'LEAN SHORT';
+  if (score <= 15) return 'EXTENDED BEARISH';
+  if (score <= 35) return 'BEARISH TREND';
+  if (score <= 45) return 'LEAN BEARISH';
   if (score <= 55) return 'NEUTRAL';
-  if (score <= 65) return 'LEAN LONG';
-  return 'STRONG LONG';
+  if (score <= 65) return 'LEAN BULLISH';
+  if (score <= 85) return 'BULLISH TREND';
+  return 'EXTENDED BULLISH';
 }
 
 function buildReasoning(signals) {
@@ -59,12 +60,13 @@ function buildReasoning(signals) {
 
   const score = signals.score;
   let prefix;
-  if (score >= 80) prefix = 'Strong bullish conviction —';
-  else if (score >= 60) prefix = 'Bullish lean —';
-  else if (score <= 20) prefix = 'Strong bearish conviction —';
-  else if (score <= 40) prefix = 'Bearish lean —';
+  if (score >= 80) prefix = 'Indicators fully extended bullish — pullback risk elevated.';
+  else if (score >= 60) prefix = 'Indicators lean bullish —';
+  else if (score <= 20) prefix = 'Indicators fully extended bearish — bounce risk elevated.';
+  else if (score <= 40) prefix = 'Indicators lean bearish —';
   else prefix = 'Mixed signals —';
 
+  if (score >= 80 || score <= 20) return `${prefix} ${parts.join('; ')}.`;
   return `${prefix} ${parts.join('; ')}.`;
 }
 
@@ -94,7 +96,7 @@ function volColor(ratio) {
 function getBreakdown(signals) {
   if (!signals) return [];
   const rows = [
-    { label: 'EMA Stack', value: signals.emaStack === 'BULL' ? 20 : signals.emaStack === 'BEAR' ? 0 : 10, max: 20, detail: signals.emaStack },
+    { label: 'EMA Stack', value: Math.round((signals.emaScore ?? 0.5) * 20), max: 20, detail: signals.emaStack },
     { label: 'SMMA 99', value: signals.smma99 === 'ABOVE' ? 20 : signals.smma99 === 'NEAR' ? 10 : 0, max: 20, detail: signals.smma99 },
     { label: 'RSI', value: Math.round((signals.rsiScore ?? 0.5) * 20), max: 20, detail: `${signals.rsi} (${signals.rsiZone})` },
     { label: 'MACD', value: signals.macdDirection === 'BULL' ? 20 : signals.macdDirection === 'BEAR' ? 0 : 10, max: 20, detail: signals.macdDirection },
@@ -258,7 +260,21 @@ export default function HeroBlock({ signals, activeTf, tickerName, tickerShort, 
         <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, background: color }} />
         </div>
+        <div style={{ marginTop: 4, fontSize: 9, color: 'var(--text-body)', opacity: 0.45, textAlign: 'right' }}>
+          Trend health indicator — not a trade signal
+        </div>
       </div>
+
+      {/* Exhaustion warning at extremes */}
+      {(score >= 80 || score <= 20) && (
+        <div className="flex items-start gap-2" style={{ marginTop: 6 }}>
+          <span style={{ color: 'var(--amber)', fontSize: 14, lineHeight: 1 }}>!</span>
+          <span style={{ fontSize: 11, color: 'var(--amber)', lineHeight: 1.5 }}>
+            {score >= 80 ? 'Extended — historically, extreme bullish readings precede pullbacks.'
+              : 'Extended — historically, extreme bearish readings precede bounces.'}
+          </span>
+        </div>
+      )}
 
       {/* Conflict warning */}
       {hasConflict && (() => {

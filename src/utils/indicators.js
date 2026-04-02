@@ -141,6 +141,34 @@ function getEMAStack(close, ema20, ema50, ema100, ema200) {
   return 'MIXED';
 }
 
+// Continuous EMA score: measures both order alignment and distance spread
+// Returns 0.0 (strong bear) to 1.0 (strong bull), 0.5 = neutral
+// Considers: price position relative to EMAs + how spread apart they are (normalized by ATR)
+function getEMAScore(close, ema20, ema50, ema100, ema200, atr) {
+  if ([ema20, ema50, ema100, ema200].some((v) => v == null)) return 0.5;
+
+  // Component 1: Position — how many EMAs is price above? (0-4, normalized to 0-1)
+  const above = [ema20, ema50, ema100, ema200].filter((e) => close > e).length;
+  const positionScore = above / 4; // 0.0 = below all, 1.0 = above all
+
+  // Component 2: Order quality — are EMAs properly stacked?
+  // Perfect bull: 20 > 50 > 100 > 200. Count correct orderings (0-3)
+  const pairs = [[ema20, ema50], [ema50, ema100], [ema100, ema200]];
+  const bullOrder = pairs.filter(([a, b]) => a > b).length;
+  const orderScore = bullOrder / 3; // 0.0 = perfectly bear stacked, 1.0 = perfectly bull stacked
+
+  // Component 3: Distance — how far is price from EMA200? (normalized by ATR)
+  // Captures "extended" vs "compressed" — large distance = more committed trend
+  if (atr == null || atr === 0) return positionScore * 0.6 + orderScore * 0.4;
+
+  const distFromEma200 = (close - ema200) / atr;
+  // Sigmoid-like mapping: ±4 ATR from EMA200 maps to 0-1 range
+  const distScore = Math.max(0, Math.min(1, 0.5 + distFromEma200 / 8));
+
+  // Blend: position (40%) + order (35%) + distance (25%)
+  return positionScore * 0.4 + orderScore * 0.35 + distScore * 0.25;
+}
+
 function getSMMAPosition(close, smma, atr) {
   if (smma == null) return 'BELOW';
   // NEAR zone: within 0.5× ATR of SMMA (avoids flip-flopping at the line)
@@ -370,11 +398,12 @@ function detectPattern(candles) {
 // weights: { ema, smma, rsi, macd, pattern } — each 0-40, default 20
 const DEFAULT_WEIGHTS = { ema: 20, smma: 20, rsi: 20, macd: 20, pattern: 20 };
 
-function calcScore(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio, weights) {
+function calcScore(emaScore, smmaPos, rsiScore, pattern, macdDir, adx, volRatio, weights) {
   const w = weights || DEFAULT_WEIGHTS;
 
   // Normalized component scores (0.0 to 1.0 each)
-  const emaRaw = emaStack === 'BULL' ? 1 : emaStack === 'BEAR' ? 0 : 0.5;
+  // emaScore is now continuous (0.0–1.0) from getEMAScore()
+  const emaRaw = emaScore;
   const smmaRaw = smmaPos === 'ABOVE' ? 1 : smmaPos === 'NEAR' ? 0.5 : 0;
   const rsiRaw = rsiScore; // continuous 0.0–1.0 from getRSIScore()
   const macdRaw = macdDir === 'BULL' ? 1 : macdDir === 'BEAR' ? 0 : 0.5;
@@ -411,7 +440,19 @@ function calcScore(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio,
   // Apply modifiers: push score toward 50 (not toward 0)
   const deviation = baseScore - 50;
   const modifiedDeviation = deviation * adxMod * volMod;
-  const finalScore = Math.round(Math.max(0, Math.min(100, 50 + modifiedDeviation)));
+  let finalScore = Math.round(Math.max(0, Math.min(100, 50 + modifiedDeviation)));
+
+  // Extreme dampening: scores beyond 75/25 face increasing resistance
+  // Backtest showed strongBull (70+) has negative avg forward returns.
+  // Compress extremes toward 70/30 boundary — the signal loses predictive
+  // value past that point and becomes a contrarian indicator.
+  if (finalScore > 75) {
+    // Map 75-100 → 75-85: halve the deviation beyond 75
+    finalScore = 75 + Math.round((finalScore - 75) * 0.4);
+  } else if (finalScore < 25) {
+    // Map 0-25 → 15-25: halve the deviation below 25
+    finalScore = 25 - Math.round((25 - finalScore) * 0.4);
+  }
 
   return { score: finalScore, baseScore, adxMod, volMod };
 }
@@ -500,17 +541,19 @@ export function computeSignals(candles, weights) {
   const volRatio = calcVolumeRatio(volumes);
 
   const emaStack = getEMAStack(close, ema20, ema50, ema100, ema200);
+  const emaScore = getEMAScore(close, ema20, ema50, ema100, ema200, atr);
   const smmaPosition = getSMMAPosition(close, smma99, atr);
   const rsiZone = getRSIZone(rsi);
   const rsiScore = getRSIScore(rsi);
   const macdDirection = getMACDDirection(macdData);
-  const { score, baseScore, adxMod, volMod } = calcScore(emaStack, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio, weights);
+  const { score, baseScore, adxMod, volMod } = calcScore(emaScore, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio, weights);
 
   const atrPct = atr != null ? (atr / close) * 100 : null;
   const bbPct = bb != null ? ((close - bb.lower) / (bb.upper - bb.lower)) * 100 : null;
 
   return {
     emaStack,
+    emaScore: parseFloat(emaScore.toFixed(3)),
     ema: { ema20, ema50, ema100, ema200 },
     smma99: smmaPosition,
     smma99Value: smma99,

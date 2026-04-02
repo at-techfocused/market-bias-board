@@ -3,7 +3,9 @@ export const TF_DISPLAY = { '1H': '1H', '4H': '4H', D: 'DAILY' };
 
 export function getBiasLabel(score) {
   if (score == null) return 'Neutral';
+  if (score <= 25) return 'Extended Bear';
   if (score <= 40) return 'Bearish';
+  if (score >= 75) return 'Extended Bull';
   if (score >= 60) return 'Bullish';
   return 'Neutral';
 }

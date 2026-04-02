@@ -309,14 +309,28 @@ function detectPattern(candles) {
   return null;
 }
 
-// Scoring
-function calcScore(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio) {
+// EMA distance scoring (v2) — continuous 0.0-1.0
+function getEMAScore(close, ema20, ema50, ema100, ema200, atr) {
+  if ([ema20, ema50, ema100, ema200].some((v) => v == null)) return 0.5;
+  const above = [ema20, ema50, ema100, ema200].filter((e) => close > e).length;
+  const positionScore = above / 4;
+  const pairs = [[ema20, ema50], [ema50, ema100], [ema100, ema200]];
+  const bullOrder = pairs.filter(([a, b]) => a > b).length;
+  const orderScore = bullOrder / 3;
+  if (atr == null || atr === 0) return positionScore * 0.6 + orderScore * 0.4;
+  const distFromEma200 = (close - ema200) / atr;
+  const distScore = Math.max(0, Math.min(1, 0.5 + distFromEma200 / 8));
+  return positionScore * 0.4 + orderScore * 0.35 + distScore * 0.25;
+}
+
+// Scoring — v1 (baseline, binary EMA)
+function calcScoreV1(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio) {
   const emaRaw = emaStack === 'BULL' ? 1 : emaStack === 'BEAR' ? 0 : 0.5;
   const smmaRaw = smmaPos === 'ABOVE' ? 1 : smmaPos === 'NEAR' ? 0.5 : 0;
   const rsiRaw = rsiScore;
   const macdRaw = macdDir === 'BULL' ? 1 : macdDir === 'BEAR' ? 0 : 0.5;
 
-  let totalWeight = 80; // 4 components × 20
+  let totalWeight = 80;
   let weightedSum = (emaRaw * 20) + (smmaRaw * 20) + (rsiRaw * 20) + (macdRaw * 20);
 
   if (pattern != null) {
@@ -336,6 +350,40 @@ function calcScore(emaStack, smmaPos, rsiScore, pattern, macdDir, adx, volRatio)
   return Math.round(Math.max(0, Math.min(100, 50 + deviation * adxMod * volMod)));
 }
 
+// Scoring — v2 (continuous EMA + extreme dampening)
+function calcScoreV2(emaScore, smmaPos, rsiScore, pattern, macdDir, adx, volRatio) {
+  const emaRaw = emaScore; // continuous 0.0–1.0
+  const smmaRaw = smmaPos === 'ABOVE' ? 1 : smmaPos === 'NEAR' ? 0.5 : 0;
+  const rsiRaw = rsiScore;
+  const macdRaw = macdDir === 'BULL' ? 1 : macdDir === 'BEAR' ? 0 : 0.5;
+
+  let totalWeight = 80;
+  let weightedSum = (emaRaw * 20) + (smmaRaw * 20) + (rsiRaw * 20) + (macdRaw * 20);
+
+  if (pattern != null) {
+    const patternRaw = pattern.direction === 'BULL' ? 1 : pattern.direction === 'BEAR' ? 0 : 0.5;
+    weightedSum += patternRaw * 20;
+    totalWeight += 20;
+  }
+
+  let baseScore = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : 50;
+
+  let adxMod = 1.0;
+  if (adx != null) { if (adx < 15) adxMod = 0.6; else if (adx < 20) adxMod = 0.8; else if (adx >= 40) adxMod = 1.1; }
+  let volMod = 1.0;
+  if (volRatio != null) { if (volRatio < 0.5) volMod = 0.8; else if (volRatio < 0.8) volMod = 0.9; else if (volRatio >= 1.5) volMod = 1.1; }
+
+  const deviation = baseScore - 50;
+  let finalScore = Math.round(Math.max(0, Math.min(100, 50 + deviation * adxMod * volMod)));
+
+  // Extreme dampening
+  if (finalScore > 75) finalScore = 75 + Math.round((finalScore - 75) * 0.4);
+  else if (finalScore < 25) finalScore = 25 - Math.round((25 - finalScore) * 0.4);
+
+  return finalScore;
+}
+
+// computeSignals returns BOTH v1 and v2 scores for A/B comparison
 function computeSignals(candles) {
   if (!candles || candles.length < 200) return null;
   const closes = candles.map((c) => c.c);
@@ -354,17 +402,20 @@ function computeSignals(candles) {
   const volRatio = calcVolumeRatio(volumes);
 
   const emaStack = getEMAStack(close, ema20, ema50, ema100, ema200);
+  const emaScoreVal = getEMAScore(close, ema20, ema50, ema100, ema200, atr);
   const smmaPosition = getSMMAPosition(close, smma99, atr);
   const rsiScore = getRSIScore(rsi);
   const macdDirection = getMACDDirection(macdData);
-  const score = calcScore(emaStack, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio);
 
-  return { score, close };
+  const scoreV1 = calcScoreV1(emaStack, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio);
+  const scoreV2 = calcScoreV2(emaScoreVal, smmaPosition, rsiScore, pattern, macdDirection, adx, volRatio);
+
+  return { score: scoreV1, scoreV2, close };
 }
 
 // ─── Backtest Runner ───
 
-// Collects raw score + forward return data for a given forward period
+// Collects raw score (v1 + v2) + forward return data for a given forward period
 function runBacktest(candles, lookForward) {
   if (!candles || candles.length < 201) return [];
   const results = [];
@@ -377,7 +428,7 @@ function runBacktest(candles, lookForward) {
     if (end + lookForward <= candles.length) {
       fwdReturn = ((candles[end + lookForward - 1].c - current.c) / current.c) * 100;
     }
-    results.push({ score: signals.score, fwdReturn });
+    results.push({ score: signals.score, scoreV2: signals.scoreV2, fwdReturn });
   }
   return results;
 }
@@ -465,14 +516,63 @@ function analyzeScoreDelta(results) {
   };
 }
 
-// ─── Strategy C: Score Delta + TF-scaled forward (combined) ───
-// Same as B but forward period already scaled per-TF in the data collection step
+// ─── Strategy E: V2 scoring (continuous EMA + extreme dampening) ───
+// Uses scoreV2 field from results instead of score
+function analyzeV2(results) {
+  const withFwd = results.filter((r) => r.fwdReturn != null && r.scoreV2 != null);
+  if (withFwd.length < 5) return null;
 
-// Convenience: analyze all strategies on the same raw results
-function analyzeAll(results) {
+  let correct = 0;
+  for (const r of withFwd) {
+    const predicted = r.scoreV2 > 50 ? 'bull' : r.scoreV2 < 50 ? 'bear' : 'neutral';
+    const actual = r.fwdReturn > 0 ? 'bull' : r.fwdReturn < 0 ? 'bear' : 'neutral';
+    if (predicted === actual) correct++;
+  }
+
+  const bullSignals = withFwd.filter((r) => r.scoreV2 >= 60);
+  const bearSignals = withFwd.filter((r) => r.scoreV2 <= 40);
+
   return {
-    baseline: analyzeBaseline(results),
-    scoreDelta: analyzeScoreDelta(results),
+    dataPoints: results.length,
+    signalsWithForward: withFwd.length,
+    accuracy: parseFloat(((correct / withFwd.length) * 100).toFixed(1)),
+    bullWinRate: bullSignals.length ? parseFloat(((bullSignals.filter((r) => r.fwdReturn > 0).length / bullSignals.length) * 100).toFixed(1)) : null,
+    bearWinRate: bearSignals.length ? parseFloat(((bearSignals.filter((r) => r.fwdReturn < 0).length / bearSignals.length) * 100).toFixed(1)) : null,
+  };
+}
+
+// ─── Strategy F: V2 + Score Delta (best of both) ───
+function analyzeV2Delta(results) {
+  const withFwd = results.filter((r) => r.fwdReturn != null && r.scoreV2 != null);
+  if (withFwd.length < DELTA_LOOKBACK + 1) return null;
+
+  let correct = 0, directional = 0;
+  let bullCorrect = 0, bullTotal = 0;
+  let bearCorrect = 0, bearTotal = 0;
+
+  for (let i = DELTA_LOOKBACK; i < withFwd.length; i++) {
+    const current = withFwd[i];
+    const past = withFwd[i - DELTA_LOOKBACK];
+    const delta = current.scoreV2 - past.scoreV2;
+    const actual = current.fwdReturn > 0 ? 'bull' : 'bear';
+
+    if (delta > 0 && current.scoreV2 >= 50) {
+      directional++; bullTotal++;
+      if (actual === 'bull') { correct++; bullCorrect++; }
+    } else if (delta < 0 && current.scoreV2 <= 50) {
+      directional++; bearTotal++;
+      if (actual === 'bear') { correct++; bearCorrect++; }
+    }
+  }
+
+  if (directional < 5) return null;
+
+  return {
+    dataPoints: results.length,
+    signalsWithForward: directional,
+    accuracy: parseFloat(((correct / directional) * 100).toFixed(1)),
+    bullWinRate: bullTotal ? parseFloat(((bullCorrect / bullTotal) * 100).toFixed(1)) : null,
+    bearWinRate: bearTotal ? parseFloat(((bearCorrect / bearTotal) * 100).toFixed(1)) : null,
   };
 }
 
@@ -487,18 +587,18 @@ async function main() {
   const tickers = filterTickers || TICKER_LIST;
 
   // Strategy names for reporting
-  const STRATEGIES = ['baseline', 'scoreDelta', 'tfScaled', 'tfScaled+delta'];
+  const STRATEGIES = ['baseline', 'scoreDelta', 'v2', 'v2+delta'];
 
   console.log(`\n╔══════════════════════════════════════════════════════════════╗`);
   console.log(`║       BiasBoard Backtest Audit — A/B Variant Test           ║`);
   console.log(`╠══════════════════════════════════════════════════════════════╣`);
   console.log(`║  Tickers:    ${String(tickers.length).padEnd(5)} Timeframes: ${TF_KEYS.join(', ').padEnd(20)} ║`);
-  console.log(`║  Forward A:  ${String(FORWARD_BARS).padEnd(5)} Forward B:  ${TF_KEYS.map(tf => `${tf}=${TF_FORWARD[tf]}`).join(', ').padEnd(20)} ║`);
-  console.log(`║  Delta LB:   ${String(DELTA_LOOKBACK).padEnd(5)} Batch size: ${String(BATCH_SIZE).padEnd(20)} ║`);
-  console.log(`║  Strategies: baseline | scoreDelta | tfScaled | combined   ║`);
+  console.log(`║  Forward:    ${String(FORWARD_BARS).padEnd(5)} Delta LB:   ${String(DELTA_LOOKBACK).padEnd(20)} ║`);
+  console.log(`║  Batch size: ${String(BATCH_SIZE).padEnd(5)}                                ║`);
+  console.log(`║  Strategies: baseline | scoreDelta | v2 | v2+delta          ║`);
   console.log(`╚══════════════════════════════════════════════════════════════╝\n`);
 
-  // allResults[ticker][tf] = { fixedFwd: rawResults, scaledFwd: rawResults }
+  // allResults[ticker][tf] = rawResults (each entry has score v1 + v2)
   const allResults = {};
   const errors = [];
   let completed = 0;
@@ -514,9 +614,8 @@ async function main() {
         try {
           const candles = await fetchCandles(ticker, res);
           // Run backtest twice: once with fixed forward, once with TF-scaled forward
-          const fixedFwd = runBacktest(candles, FORWARD_BARS);
-          const scaledFwd = runBacktest(candles, TF_FORWARD[tf] || FORWARD_BARS);
-          tickerResults[tf] = { fixedFwd, scaledFwd };
+          const backtestData = runBacktest(candles, FORWARD_BARS);
+          tickerResults[tf] = backtestData;
         } catch (err) {
           tickerResults[tf] = null;
           errors.push({ ticker, tf, error: err.message });
@@ -551,7 +650,7 @@ async function main() {
   }
 
   // Per-ticker analyzed results for table output
-  const analyzed = {}; // analyzed[ticker][tf] = { baseline, scoreDelta, tfScaled, 'tfScaled+delta' }
+  const analyzed = {}; // analyzed[ticker][tf] = { baseline, scoreDelta, v2, 'v2+delta' }
 
   for (const [ticker, tfResults] of Object.entries(allResults)) {
     analyzed[ticker] = {};
@@ -559,13 +658,13 @@ async function main() {
 
     for (const tf of TF_KEYS) {
       const raw = tfResults[tf];
-      if (!raw) { analyzed[ticker][tf] = null; continue; }
+      if (!raw || !raw.length) { analyzed[ticker][tf] = null; continue; }
 
       const result = {
-        baseline: analyzeBaseline(raw.fixedFwd),         // A: original (fixed fwd, absolute score)
-        scoreDelta: analyzeScoreDelta(raw.fixedFwd),     // B: fixed fwd + score delta signal
-        tfScaled: analyzeBaseline(raw.scaledFwd),        // C: TF-scaled fwd + absolute score
-        'tfScaled+delta': analyzeScoreDelta(raw.scaledFwd), // D: TF-scaled fwd + score delta
+        baseline: analyzeBaseline(raw),             // A: v1 scoring (binary EMA, no dampening)
+        scoreDelta: analyzeScoreDelta(raw),         // B: v1 + score delta signal
+        v2: analyzeV2(raw),                         // C: continuous EMA + extreme dampening
+        'v2+delta': analyzeV2Delta(raw),            // D: v2 + score delta
       };
       analyzed[ticker][tf] = result;
 
