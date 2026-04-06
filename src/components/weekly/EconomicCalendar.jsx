@@ -14,51 +14,51 @@ function formatDay(dateStr) {
 export default function EconomicCalendar({ events }) {
   if (!events?.length) {
     return (
-      <div className="rounded-[10px]" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '12px 14px', marginBottom: 10 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 6 }}>ECONOMIC CALENDAR</div>
-        <div style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.5 }}>Data unavailable — refresh to retry</div>
+      <div className="rounded-[12px]" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '18px 20px', marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 8 }}>ECONOMIC CALENDAR</div>
+        <div style={{ fontSize: 13, color: 'var(--text-body)', opacity: 0.4 }}>No high-impact events this week</div>
       </div>
     );
   }
 
   return (
     <div
-      className="rounded-[10px]"
-      style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '12px 14px', marginBottom: 10 }}
+      className="rounded-[12px]"
+      style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '18px 20px', marginBottom: 16 }}
     >
-      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 14 }}>
         ECONOMIC CALENDAR
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {events.map((e, i) => {
           const impact = getImpactLevel(e.event);
           const impactColor = impact === 'CRIT' ? 'var(--red)' : 'var(--amber)';
           return (
-            <div key={i} className="flex items-center gap-3" style={{ padding: '4px 0', borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            <div key={i} className="flex items-center gap-3" style={{ padding: '10px 0', borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none' }}>
               <span
                 style={{
-                  fontSize: 7,
+                  fontSize: 9,
                   fontWeight: 700,
                   letterSpacing: '0.1em',
-                  padding: '1px 4px',
-                  borderRadius: 2,
+                  padding: '2px 6px',
+                  borderRadius: 3,
                   background: `${impactColor}18`,
                   color: impactColor,
                   flexShrink: 0,
-                  minWidth: 30,
+                  minWidth: 36,
                   textAlign: 'center',
                 }}
               >
                 {impact}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {e.event}
                 </div>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6, flexShrink: 0, textAlign: 'right' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.6, flexShrink: 0, textAlign: 'right' }}>
                 <div>{formatDay(e.date)}</div>
-                {e.time && <div style={{ fontSize: 9 }}>{e.time} UTC</div>}
+                {e.time && <div style={{ fontSize: 11, marginTop: 2 }}>{e.time} UTC</div>}
               </div>
             </div>
           );

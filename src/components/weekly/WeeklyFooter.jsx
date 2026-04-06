@@ -12,11 +12,11 @@ export default function WeeklyFooter({ weekLabel, generatedAt }) {
     : 'Unknown';
 
   return (
-    <div style={{ padding: '16px 0 24px', textAlign: 'center' }}>
-      <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.35, lineHeight: 1.8 }}>
+    <div style={{ padding: '24px 0 32px', textAlign: 'center' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.35, lineHeight: 1.8 }}>
         BiasBoard Weekly Brief · Week of {weekLabel || '--'} · Not financial advice · AI assisted
       </div>
-      <div style={{ fontSize: 9, color: 'var(--text-body)', opacity: 0.25 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.25, marginTop: 4 }}>
         Updated {formatted}
       </div>
     </div>

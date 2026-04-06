@@ -100,3 +100,11 @@ body {
 .skeleton-pulse {
   animation: skeletonPulse 1.5s ease-in-out infinite;
 }
+
+/* Generating spinner ring */
+@keyframes generatingRing {
+  to { transform: rotate(360deg); }
+}
+.generating-ring {
+  animation: generatingRing 1.2s linear infinite;
+}
