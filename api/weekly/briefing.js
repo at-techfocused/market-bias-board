@@ -1,5 +1,23 @@
 import { kv } from '@vercel/kv';
 
+// Try to read from KV, return null if KV is not configured
+async function readBriefing() {
+  try {
+    const raw = await kv.get('weekly:briefing');
+    if (!raw) return null;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch (err) {
+    console.error('[Weekly] KV read error:', err.message);
+    return null;
+  }
+}
+
+// Run the generate pipeline and return the briefing directly
+async function generateBriefing() {
+  const { runGeneration } = await import('./generate.js');
+  return runGeneration();
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -12,56 +30,34 @@ export default async function handler(req, res) {
   const refresh = req.query.refresh === 'true';
   if (refresh) {
     const secret = req.headers['x-cron-secret'] || req.headers['authorization'];
-    if (secret !== process.env.CRON_SECRET) {
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Trigger generation by calling the generate endpoint internally
     try {
-      const { default: generate } = await import('./generate.js');
-      const mockRes = {
-        status: (code) => ({ json: (data) => data }),
-      };
-      await generate(req, mockRes);
+      const briefing = await generateBriefing();
+      if (briefing) return res.status(200).json(briefing);
     } catch (err) {
       console.error('[Weekly] Refresh generation failed:', err);
     }
   }
 
-  try {
-    const raw = await kv.get('weekly:briefing');
-
-    if (!raw) {
-      // First run — no data yet. Try to generate on-demand.
-      try {
-        const { default: generate } = await import('./generate.js');
-        const mockRes = {
-          statusCode: 200,
-          data: null,
-          status: function (code) {
-            this.statusCode = code;
-            return { json: (d) => { this.data = d; } };
-          },
-        };
-        await generate(req, mockRes);
-
-        // Re-read from KV after generation
-        const freshRaw = await kv.get('weekly:briefing');
-        if (freshRaw) {
-          const briefing = typeof freshRaw === 'string' ? JSON.parse(freshRaw) : freshRaw;
-          return res.status(200).json(briefing);
-        }
-      } catch (err) {
-        console.error('[Weekly] On-demand generation failed:', err);
-      }
-
-      return res.status(200).json({ empty: true, message: 'Weekly brief not yet generated' });
-    }
-
-    const briefing = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return res.status(200).json(briefing);
-  } catch (err) {
-    console.error('[Weekly] Briefing read failed:', err);
-    return res.status(500).json({ error: 'Failed to load briefing' });
+  // Try reading from KV first
+  const cached = await readBriefing();
+  if (cached) {
+    return res.status(200).json(cached);
   }
+
+  // KV empty — generate on demand (first visit before cron fires)
+  console.log('[Weekly] No cached briefing found, generating on demand...');
+  try {
+    const briefing = await generateBriefing();
+    if (briefing) {
+      return res.status(200).json(briefing);
+    }
+  } catch (err) {
+    console.error('[Weekly] On-demand generation failed:', err);
+  }
+
+  return res.status(200).json({ empty: true, message: 'Weekly brief not yet generated' });
 }

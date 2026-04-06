@@ -235,48 +235,59 @@ WEEK: ${weekLabel}`;
   }
 }
 
-// ── Main handler ──
+// ── Core generation pipeline (used by both cron handler and on-demand) ──
+
+export async function runGeneration() {
+  console.log('[Weekly] Starting weekly briefing generation...');
+
+  const { monStr, friStr, weekLabel } = getWeekDates();
+
+  // Run independent fetches in parallel
+  const [snapshotData, macroData, earningsData, economicData] = await Promise.all([
+    fetchSnapshot(),
+    fetchMacro(),
+    fetchEarnings(monStr, friStr),
+    fetchEconomic(monStr, friStr),
+  ]);
+
+  console.log('[Weekly] Data fetched. Snapshot:', snapshotData.length, 'Earnings:', earningsData.length, 'Economic:', economicData.length);
+
+  // AI generation
+  const aiOutput = await generateNarrative(snapshotData, earningsData, economicData, weekLabel, macroData);
+
+  // Assemble briefing
+  const briefing = {
+    generatedAt: new Date().toISOString(),
+    weekLabel,
+    snapshot: snapshotData,
+    macro: macroData,
+    earnings: earningsData,
+    economic: economicData,
+    ai: aiOutput,
+  };
+
+  // Store in KV
+  try {
+    await kv.set('weekly:briefing', JSON.stringify(briefing));
+    await kv.set('weekly:generated_at', briefing.generatedAt);
+    console.log('[Weekly] Briefing stored in KV');
+  } catch (err) {
+    console.error('[Weekly] KV write failed (briefing still returned):', err.message);
+  }
+
+  console.log('[Weekly] Briefing generated successfully');
+  return briefing;
+}
+
+// ── Cron / manual trigger handler ──
 
 export default async function handler(req, res) {
-  // Only allow GET (cron) and POST (manual trigger)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
-    console.log('[Weekly] Starting weekly briefing generation...');
-
-    const { monStr, friStr, weekLabel } = getWeekDates();
-
-    // Run independent fetches in parallel
-    const [snapshotData, macroData, earningsData, economicData] = await Promise.all([
-      fetchSnapshot(),
-      fetchMacro(),
-      fetchEarnings(monStr, friStr),
-      fetchEconomic(monStr, friStr),
-    ]);
-
-    console.log('[Weekly] Data fetched. Snapshot:', snapshotData.length, 'Earnings:', earningsData.length, 'Economic:', economicData.length);
-
-    // AI generation
-    const aiOutput = await generateNarrative(snapshotData, earningsData, economicData, weekLabel, macroData);
-
-    // Assemble briefing
-    const briefing = {
-      generatedAt: new Date().toISOString(),
-      weekLabel,
-      snapshot: snapshotData,
-      macro: macroData,
-      earnings: earningsData,
-      economic: economicData,
-      ai: aiOutput,
-    };
-
-    // Store in KV
-    await kv.set('weekly:briefing', JSON.stringify(briefing));
-    await kv.set('weekly:generated_at', briefing.generatedAt);
-
-    console.log('[Weekly] Briefing generated and stored successfully');
+    const briefing = await runGeneration();
     return res.status(200).json({ success: true, generatedAt: briefing.generatedAt });
   } catch (err) {
     console.error('[Weekly] Generation failed:', err);
