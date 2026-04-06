@@ -13,7 +13,6 @@ export default function WhatToWatch({ economic, earnings }) {
 
   const items = [];
 
-  // Top economic events
   if (economic?.length) {
     for (const e of economic.slice(0, 3)) {
       const isCrit = CRIT_KEYWORDS.some((kw) => e.event.includes(kw));
@@ -25,7 +24,6 @@ export default function WhatToWatch({ economic, earnings }) {
     }
   }
 
-  // Starred earnings
   if (earnings?.length) {
     for (const e of earnings) {
       if (watchSymbols.includes(e.symbol) && items.length < 5) {
@@ -38,7 +36,6 @@ export default function WhatToWatch({ economic, earnings }) {
     }
   }
 
-  // Fill remaining with non-starred earnings
   if (items.length < 5 && earnings?.length) {
     for (const e of earnings) {
       if (!watchSymbols.includes(e.symbol) && items.length < 5) {
@@ -54,30 +51,30 @@ export default function WhatToWatch({ economic, earnings }) {
   if (!items.length) return null;
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 12 }}>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'var(--text-body)', textTransform: 'uppercase', marginBottom: 8 }}>
         WHAT TO WATCH
       </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
+      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
         {items.map((item, i) => (
           <div
             key={i}
-            className="rounded-[10px] flex items-start gap-3"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '14px 16px' }}
+            className="rounded-[8px] flex items-start gap-2.5"
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', padding: '10px 12px' }}
           >
             <div
               style={{
-                width: 10,
-                height: 10,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: item.color,
                 flexShrink: 0,
-                marginTop: 4,
+                marginTop: 3,
               }}
             />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{item.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-body)', opacity: 0.6, marginTop: 4 }}>{item.sub}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{item.title}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.6, marginTop: 2 }}>{item.sub}</div>
             </div>
           </div>
         ))}

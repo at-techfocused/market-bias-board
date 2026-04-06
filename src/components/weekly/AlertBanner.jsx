@@ -11,38 +11,38 @@ export default function AlertBanner({ alert }) {
 
   return (
     <div
-      className="rounded-[12px]"
+      className="rounded-[10px]"
       style={{
         background: 'var(--bg-base)',
         border: '1px solid var(--border)',
         borderLeft: `3px solid ${color}`,
-        padding: '18px 20px',
-        marginBottom: 16,
+        padding: '14px 16px',
+        marginBottom: 12,
       }}
     >
-      <div className="flex items-center gap-2.5" style={{ marginBottom: 10 }}>
+      <div className="flex items-center gap-2" style={{ marginBottom: 6 }}>
         <span
           className="animate-pulse"
           style={{
-            width: 9,
-            height: 9,
+            width: 8,
+            height: 8,
             borderRadius: '50%',
             background: color,
-            boxShadow: `0 0 10px ${color}`,
+            boxShadow: `0 0 8px ${color}`,
             display: 'inline-block',
             flexShrink: 0,
           }}
         />
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
           {alert.title}
         </span>
         <span
           style={{
-            fontSize: 10,
+            fontSize: 8,
             fontWeight: 700,
             letterSpacing: '0.1em',
-            padding: '2px 8px',
-            borderRadius: 4,
+            padding: '1px 6px',
+            borderRadius: 3,
             background: `${color}22`,
             color,
             marginLeft: 'auto',
@@ -52,7 +52,7 @@ export default function AlertBanner({ alert }) {
           {alert.level}
         </span>
       </div>
-      <div style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.7 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.6 }}>
         {alert.body}
       </div>
     </div>

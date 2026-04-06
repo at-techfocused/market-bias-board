@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import AlertBanner from '../components/weekly/AlertBanner';
 import MarketSnapshot from '../components/weekly/MarketSnapshot';
 import PrimaryNarrative from '../components/weekly/PrimaryNarrative';
-import GeopoliticalAlert from '../components/weekly/GeopoliticalAlert';
 import EconomicCalendar from '../components/weekly/EconomicCalendar';
 import EarningsCalendar from '../components/weekly/EarningsCalendar';
 import StrategicLevels from '../components/weekly/StrategicLevels';
@@ -29,7 +28,6 @@ function GeneratingState() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
       <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        {/* Pulsing ring */}
         <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 28px' }}>
           <div
             className="generating-ring"
@@ -56,34 +54,33 @@ function GeneratingState() {
           </div>
         </div>
 
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, letterSpacing: '0.02em' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
           Generating Weekly Brief
         </div>
-        <div style={{ fontSize: 14, color: 'var(--text-body)', opacity: 0.5, marginBottom: 32, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, marginBottom: 28, lineHeight: 1.6 }}>
           First-time generation takes 15–30 seconds.
           <br />Subsequent visits load from cache.
         </div>
 
-        {/* Step progress */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'left', maxWidth: 280, margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', maxWidth: 260, margin: '0 auto' }}>
           {steps.map((step, i) => {
             const done = i < activeStep;
             const active = i === activeStep;
             return (
               <div key={i} className="flex items-center gap-3">
                 <div style={{
-                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: done ? 'rgba(42,184,184,0.15)' : active ? 'rgba(42,184,184,0.08)' : 'transparent',
                   border: done ? '1px solid rgba(42,184,184,0.4)' : active ? '1px solid rgba(42,184,184,0.25)' : '1px solid var(--border)',
                 }}>
-                  {done && <span style={{ fontSize: 11, color: 'var(--green)' }}>&#10003;</span>}
+                  {done && <span style={{ fontSize: 10, color: 'var(--green)' }}>&#10003;</span>}
                   {active && (
-                    <div className="animate-pulse" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)' }} />
+                    <div className="animate-pulse" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--green)' }} />
                   )}
                 </div>
                 <span style={{
-                  fontSize: 13,
+                  fontSize: 12,
                   color: done ? 'var(--green)' : active ? 'var(--text-primary)' : 'var(--text-body)',
                   opacity: done ? 0.7 : active ? 1 : 0.35,
                   fontWeight: active ? 600 : 400,
@@ -103,11 +100,10 @@ function EmptyState() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
       <div style={{ textAlign: 'center', maxWidth: 360 }}>
-        <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
           Weekly brief not yet generated
         </div>
-        <div style={{ fontSize: 14, color: 'var(--text-body)', opacity: 0.5, lineHeight: 1.6 }}>
-          Check back Sunday evening or contact admin.
+        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, lineHeight: 1.6 }}>
           The briefing is generated automatically every Sunday at 11PM UTC.
         </div>
       </div>
@@ -115,13 +111,29 @@ function EmptyState() {
   );
 }
 
-export default function WeeklyBrief() {
-  const [briefing, setBriefing] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Staleness threshold — 6 hours
+const STALE_MS = 6 * 60 * 60 * 1000;
+
+export default function WeeklyBrief({ briefing, onBriefingLoaded }) {
+  const [loading, setLoading] = useState(!briefing);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // If we already have a cached briefing, check staleness
+    if (briefing) {
+      const age = Date.now() - new Date(briefing.generatedAt).getTime();
+      if (age < STALE_MS) {
+        setLoading(false);
+        return; // Fresh enough, don't refetch
+      }
+      // Stale — refetch in background but show existing data
+      setLoading(false);
+      fetchBriefingSilent();
+      return;
+    }
+
+    // No cached briefing — fetch
     let cancelled = false;
 
     async function fetchBriefing() {
@@ -129,30 +141,22 @@ export default function WeeklyBrief() {
         const res = await fetch('/api/weekly/briefing');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!cancelled) {
-          if (data.empty) {
-            // API is generating on-demand — show generating state
-            setGenerating(true);
-            setLoading(false);
-            // Poll for completion
-            pollForBriefing(cancelled);
-          } else {
-            setBriefing(data);
-            setLoading(false);
-          }
+        if (cancelled) return;
+        if (data.empty) {
+          setGenerating(true);
+          setLoading(false);
+          pollForBriefing();
+        } else {
+          onBriefingLoaded(data);
+          setLoading(false);
         }
       } catch (err) {
         console.error('[WeeklyBrief] Fetch failed:', err);
-        if (!cancelled) {
-          setError(true);
-          setLoading(false);
-        }
+        if (!cancelled) { setError(true); setLoading(false); }
       }
     }
 
     async function pollForBriefing() {
-      // The first request likely triggered on-demand generation
-      // Wait and retry a few times
       for (let i = 0; i < 8; i++) {
         await new Promise((r) => setTimeout(r, 5000));
         if (cancelled) return;
@@ -161,45 +165,46 @@ export default function WeeklyBrief() {
           if (!res.ok) continue;
           const data = await res.json();
           if (!data.empty && !cancelled) {
-            setBriefing(data);
+            onBriefingLoaded(data);
             setGenerating(false);
             return;
           }
         } catch {}
       }
-      if (!cancelled) {
-        setGenerating(false);
-        setError(true);
-      }
+      if (!cancelled) { setGenerating(false); setError(true); }
     }
 
     fetchBriefing();
     return () => { cancelled = true; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) {
-    return <GeneratingState />;
+  async function fetchBriefingSilent() {
+    try {
+      const res = await fetch('/api/weekly/briefing');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.empty) onBriefingLoaded(data);
+    } catch {}
   }
 
-  if (generating) {
-    return <GeneratingState />;
-  }
+  if (loading) return <GeneratingState />;
+  if (generating) return <GeneratingState />;
+  if (error && !briefing) return <EmptyState />;
 
-  if (error || !briefing) {
-    return <EmptyState />;
-  }
+  // If we got here with no briefing somehow, empty state
+  if (!briefing) return <EmptyState />;
 
   const ai = briefing.ai;
 
   return (
-    <div style={{ padding: '24px 20px 32px', maxWidth: 960, margin: '0 auto', overflowY: 'auto' }}>
+    <div style={{ padding: '16px 20px 24px', maxWidth: 960, margin: '0 auto' }}>
       {/* Week header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
           Week of {briefing.weekLabel}
         </div>
         {ai?.dominantTheme && (
-          <div style={{ fontSize: 14, color: 'var(--text-body)', opacity: 0.6, marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.6, marginTop: 4 }}>
             {ai.dominantTheme}
           </div>
         )}
@@ -214,18 +219,12 @@ export default function WeeklyBrief() {
       {/* Primary narrative */}
       <PrimaryNarrative narrative={ai?.narrative} />
 
-      {/* Geopolitical alert */}
-      <GeopoliticalAlert alert={ai?.alertBanner} />
-
       {/* What to watch */}
       <WhatToWatch economic={briefing.economic} earnings={briefing.earnings} />
 
       {/* Two-column layout for calendars */}
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', marginBottom: 4 }}>
-        {/* Economic calendar */}
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: 4 }}>
         <EconomicCalendar events={briefing.economic} />
-
-        {/* Earnings calendar */}
         <EarningsCalendar earnings={briefing.earnings} />
       </div>
 

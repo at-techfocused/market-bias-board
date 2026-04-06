@@ -110,9 +110,11 @@ async function fetchEarnings(monStr, friStr) {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
+    // For upcoming earnings, actual revenue is null — filter on revenueEstimated
+    const rev = (e) => e.revenueEstimated ?? e.revenue ?? 0;
     return data
-      .filter((e) => e.revenue != null && e.revenue > 1_000_000_000)
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((e) => rev(e) > 1_000_000_000)
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
       .slice(0, 10)
       .map((e) => ({
         symbol: e.symbol,
@@ -140,8 +142,16 @@ async function fetchEconomic(monStr, friStr) {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
+    // FMP v3 doesn't have an 'impact' field — filter by high-impact keywords
+    const HI_KEYWORDS = ['GDP', 'CPI', 'FOMC', 'Fed', 'Nonfarm', 'NFP', 'Unemployment', 'Retail Sales',
+      'PMI', 'Interest Rate', 'Consumer Confidence', 'PPI', 'Core PCE', 'PCE', 'Jobless Claims',
+      'Housing Starts', 'Industrial Production', 'Trade Balance', 'Durable Goods'];
+
+    const isHighImpact = (e) =>
+      (e.impact === 'High') || HI_KEYWORDS.some((kw) => (e.event || '').includes(kw));
+
     return data
-      .filter((e) => e.impact === 'High')
+      .filter((e) => e.event && (isHighImpact(e) || e.impact === 'High'))
       .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
       .slice(0, 8)
       .map((e) => ({
