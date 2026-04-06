@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import AlertBanner from '../components/weekly/AlertBanner';
 import MarketSnapshot from '../components/weekly/MarketSnapshot';
 import PrimaryNarrative from '../components/weekly/PrimaryNarrative';
@@ -8,192 +7,66 @@ import StrategicLevels from '../components/weekly/StrategicLevels';
 import WhatToWatch from '../components/weekly/WhatToWatch';
 import WeeklyFooter from '../components/weekly/WeeklyFooter';
 
-function GeneratingState() {
-  const steps = [
-    'Fetching market data',
-    'Checking economic calendar',
-    'Loading earnings reports',
-    'Generating AI narrative',
-    'Assembling briefing',
-  ];
-  const [activeStep, setActiveStep] = useState(0);
+// ── Static mock data for layout development ──
+const MOCK_BRIEFING = {
+  generatedAt: '2026-04-05T23:00:00Z',
+  weekLabel: 'Apr 6–Apr 10, 2026',
+  snapshot: [
+    { label: 'SPY', symbol: 'SPY', price: 548.32, change: -0.84 },
+    { label: 'QQQ', symbol: 'QQQ', price: 462.15, change: -1.22 },
+    { label: 'Gold', symbol: 'GC=F', price: 3284.50, change: 1.45 },
+    { label: 'Oil WTI', symbol: 'CL=F', price: 71.83, change: -2.31 },
+    { label: 'BTC', symbol: 'BTC-USD', price: 68412.00, change: 3.18 },
+  ],
+  macro: {
+    vix: { price: 22.45, changePct: 8.12 },
+    yield10y: { price: 4.38, changePct: -0.91 },
+  },
+  earnings: [
+    { symbol: 'JPM', date: '2026-04-07', time: 'bmo', epsEstimated: 4.62, revenueEstimated: 42_800_000_000 },
+    { symbol: 'WFC', date: '2026-04-07', time: 'bmo', epsEstimated: 1.24, revenueEstimated: 20_400_000_000 },
+    { symbol: 'UNH', date: '2026-04-08', time: 'bmo', epsEstimated: 7.29, revenueEstimated: 109_200_000_000 },
+    { symbol: 'BAC', date: '2026-04-08', time: 'bmo', epsEstimated: 0.82, revenueEstimated: 25_600_000_000 },
+    { symbol: 'GS', date: '2026-04-09', time: 'bmo', epsEstimated: 12.35, revenueEstimated: 14_800_000_000 },
+    { symbol: 'MS', date: '2026-04-09', time: 'bmo', epsEstimated: 1.98, revenueEstimated: 15_200_000_000 },
+    { symbol: 'TSMC', date: '2026-04-10', time: 'bmo', epsEstimated: 2.05, revenueEstimated: 25_800_000_000 },
+  ],
+  economic: [
+    { event: 'FOMC Meeting Minutes', date: '2026-04-07', time: '14:00', country: 'US' },
+    { event: 'CPI (MoM) Mar', date: '2026-04-08', time: '08:30', country: 'US' },
+    { event: 'Core CPI (YoY) Mar', date: '2026-04-08', time: '08:30', country: 'US' },
+    { event: 'PPI (MoM) Mar', date: '2026-04-09', time: '08:30', country: 'US' },
+    { event: 'Initial Jobless Claims', date: '2026-04-10', time: '08:30', country: 'US' },
+    { event: 'Consumer Sentiment (Prelim)', date: '2026-04-10', time: '10:00', country: 'US' },
+  ],
+  ai: {
+    weekLabel: 'Apr 6–Apr 10, 2026',
+    alertBanner: {
+      active: true,
+      level: 'high',
+      title: 'CPI print and FOMC minutes dominate the week',
+      body: 'March CPI data on Tuesday will set the tone for rate expectations. FOMC minutes release Monday afternoon may reveal divisions on the timing of cuts. Elevated VIX at 22.45 suggests the market is pricing event risk.',
+    },
+    narrative: [
+      { text: 'CPI — March inflation data is the week\'s key catalyst. Consensus expects 0.3% MoM; a hot print above 0.4% would likely trigger a selloff in rate-sensitive tech.', bold: 'CPI' },
+      { text: 'JPM kicks off bank earnings season Monday pre-market. Credit reserves and NII guidance will signal consumer health and rate margin trajectory.', bold: 'JPM' },
+      { text: 'Gold continues its safe-haven bid, gaining 1.45% last week to $3,284. A CPI miss could accelerate the move toward $3,400.', bold: 'Gold' },
+      { text: 'BTC rallied 3.18% to $68,412 amid growing institutional ETF inflows. The $70K level remains the key psychological resistance to watch.', bold: 'BTC' },
+    ],
+    strategicLevels: [
+      { ticker: 'SPX', price: '5,483', support: '5,400', resistance: '5,560', note: 'Trading below the 20-day EMA. CPI reaction likely determines direction for the rest of the month.' },
+      { ticker: 'NDX', price: '18,420', support: '18,100', resistance: '18,800', note: 'Tech is underperforming. A hot CPI could push NDX below 18,000 support.' },
+      { ticker: 'Gold', price: '3,284', support: '3,220', resistance: '3,350', note: 'Bullish structure intact. Consecutive higher lows since February.' },
+      { ticker: 'BTC', price: '68,412', support: '65,000', resistance: '70,000', note: 'ETF flows remain positive. A break above 70K opens the path to ATH retest.' },
+      { ticker: '10Y', price: '4.38%', support: '4.20%', resistance: '4.50%', note: 'Yields drifting lower on growth concerns. CPI could reverse the trend sharply.' },
+    ],
+    alertLevel: 'high',
+    dominantTheme: 'Inflation data + bank earnings kick off Q2',
+  },
+};
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setActiveStep((s) => (s < steps.length - 1 ? s + 1 : s));
-    }, 3000);
-    return () => clearInterval(id);
-  }, [steps.length]);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
-      <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 28px' }}>
-          <div
-            className="generating-ring"
-            style={{
-              position: 'absolute', inset: 0,
-              border: '2px solid transparent',
-              borderTopColor: 'var(--green)',
-              borderRightColor: 'rgba(42,184,184,0.3)',
-              borderRadius: '50%',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute', inset: 8,
-              background: 'rgba(42,184,184,0.08)',
-              borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <div
-              className="animate-pulse"
-              style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 12px var(--green)' }}
-            />
-          </div>
-        </div>
-
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-          Generating Weekly Brief
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, marginBottom: 28, lineHeight: 1.6 }}>
-          First-time generation takes 15–30 seconds.
-          <br />Subsequent visits load from cache.
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', maxWidth: 260, margin: '0 auto' }}>
-          {steps.map((step, i) => {
-            const done = i < activeStep;
-            const active = i === activeStep;
-            return (
-              <div key={i} className="flex items-center gap-3">
-                <div style={{
-                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: done ? 'rgba(42,184,184,0.15)' : active ? 'rgba(42,184,184,0.08)' : 'transparent',
-                  border: done ? '1px solid rgba(42,184,184,0.4)' : active ? '1px solid rgba(42,184,184,0.25)' : '1px solid var(--border)',
-                }}>
-                  {done && <span style={{ fontSize: 10, color: 'var(--green)' }}>&#10003;</span>}
-                  {active && (
-                    <div className="animate-pulse" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--green)' }} />
-                  )}
-                </div>
-                <span style={{
-                  fontSize: 12,
-                  color: done ? 'var(--green)' : active ? 'var(--text-primary)' : 'var(--text-body)',
-                  opacity: done ? 0.7 : active ? 1 : 0.35,
-                  fontWeight: active ? 600 : 400,
-                }}>
-                  {step}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-      <div style={{ textAlign: 'center', maxWidth: 360 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
-          Weekly brief not yet generated
-        </div>
-        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, lineHeight: 1.6 }}>
-          The briefing is generated automatically every Sunday at 11PM UTC.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Staleness threshold — 6 hours
-const STALE_MS = 6 * 60 * 60 * 1000;
-
-export default function WeeklyBrief({ briefing, onBriefingLoaded }) {
-  const [loading, setLoading] = useState(!briefing);
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    // If we already have a cached briefing, check staleness
-    if (briefing) {
-      const age = Date.now() - new Date(briefing.generatedAt).getTime();
-      if (age < STALE_MS) {
-        setLoading(false);
-        return; // Fresh enough, don't refetch
-      }
-      // Stale — refetch in background but show existing data
-      setLoading(false);
-      fetchBriefingSilent();
-      return;
-    }
-
-    // No cached briefing — fetch
-    let cancelled = false;
-
-    async function fetchBriefing() {
-      try {
-        const res = await fetch('/api/weekly/briefing');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (cancelled) return;
-        if (data.empty) {
-          setGenerating(true);
-          setLoading(false);
-          pollForBriefing();
-        } else {
-          onBriefingLoaded(data);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('[WeeklyBrief] Fetch failed:', err);
-        if (!cancelled) { setError(true); setLoading(false); }
-      }
-    }
-
-    async function pollForBriefing() {
-      for (let i = 0; i < 8; i++) {
-        await new Promise((r) => setTimeout(r, 5000));
-        if (cancelled) return;
-        try {
-          const res = await fetch('/api/weekly/briefing');
-          if (!res.ok) continue;
-          const data = await res.json();
-          if (!data.empty && !cancelled) {
-            onBriefingLoaded(data);
-            setGenerating(false);
-            return;
-          }
-        } catch {}
-      }
-      if (!cancelled) { setGenerating(false); setError(true); }
-    }
-
-    fetchBriefing();
-    return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function fetchBriefingSilent() {
-    try {
-      const res = await fetch('/api/weekly/briefing');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.empty) onBriefingLoaded(data);
-    } catch {}
-  }
-
-  if (loading) return <GeneratingState />;
-  if (generating) return <GeneratingState />;
-  if (error && !briefing) return <EmptyState />;
-
-  // If we got here with no briefing somehow, empty state
-  if (!briefing) return <EmptyState />;
-
+export default function WeeklyBrief() {
+  const briefing = MOCK_BRIEFING;
   const ai = briefing.ai;
 
   return (

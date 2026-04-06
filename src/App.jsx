@@ -43,7 +43,6 @@ export default function App() {
   });
   const [watchlist, setWatchlist] = useState(loadWatchlist);
   const [appView, setAppView] = useState('signal'); // 'signal' or 'weekly'
-  const [weeklyBriefing, setWeeklyBriefing] = useState(null);
   const [mobileView, setMobileView] = useState('panel');
   const [compareOpen, setCompareOpen] = useState(false);
   const [weightsOpen, setWeightsOpen] = useState(false);
@@ -168,7 +167,7 @@ export default function App() {
 
       {appView === 'weekly' && (
         <div className="flex-1" style={{ minHeight: 0, overflowY: 'auto' }}>
-          <WeeklyBrief briefing={weeklyBriefing} onBriefingLoaded={setWeeklyBriefing} />
+          <WeeklyBrief />
         </div>
       )}
 
