@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import WatchlistChip from './WatchlistChip';
 import TickerSearch from './TickerSearch';
 
-export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals, onCompare }) {
+export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddToWatchlist, onRemoveFromWatchlist, signals, onCompare, appView, onAppViewChange }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [time, setTime] = useState('');
 
@@ -32,6 +32,36 @@ export default function TopBar({ activeTicker, watchlist, onTickerChange, onAddT
             BIASBOARD
           </span>
         </div>
+
+        {onAppViewChange && (
+          <nav className="flex items-center shrink-0" style={{ gap: 2 }}>
+            {[
+              { key: 'signal', label: 'Signals' },
+              { key: 'weekly', label: 'Weekly Brief' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => onAppViewChange(tab.key)}
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.04em',
+                  background: appView === tab.key ? '#0f1923' : 'transparent',
+                  border: appView === tab.key ? '1px solid #1c2e3d' : '1px solid transparent',
+                  color: appView === tab.key ? 'var(--text-primary)' : 'var(--text-body)',
+                  opacity: appView === tab.key ? 1 : 0.5,
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        )}
 
         <button
           onClick={() => setSearchOpen(true)}

@@ -91,3 +91,12 @@ body {
     min-height: 40px;
   }
 }
+
+/* Skeleton loading pulse */
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.12; }
+}
+.skeleton-pulse {
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}

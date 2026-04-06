@@ -4,6 +4,7 @@ import TradingViewWidget from './components/TradingViewWidget';
 import Panel from './components/Panel';
 import TickerCompare from './components/TickerCompare';
 import WeightSettings, { loadWeights } from './components/WeightSettings';
+import WeeklyBrief from './pages/WeeklyBrief';
 
 import { useFinnhub } from './hooks/useFinnhub';
 import { useIndicators } from './hooks/useIndicators';
@@ -41,6 +42,7 @@ export default function App() {
     return wl[0] || 'BINANCE:BTCUSDT';
   });
   const [watchlist, setWatchlist] = useState(loadWatchlist);
+  const [appView, setAppView] = useState('signal'); // 'signal' or 'weekly'
   const [mobileView, setMobileView] = useState('panel');
   const [compareOpen, setCompareOpen] = useState(false);
   const [weightsOpen, setWeightsOpen] = useState(false);
@@ -90,72 +92,84 @@ export default function App() {
         onRemoveFromWatchlist={handleRemoveFromWatchlist}
         signals={signals}
         onCompare={() => setCompareOpen(true)}
+        appView={appView}
+        onAppViewChange={setAppView}
       />
 
-      {/* Mobile view toggle */}
-      {isMobile && (
-        <div className="flex mobile-view-toggle" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
-          <button
-            onClick={() => setMobileView('panel')}
-            style={{
-              flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-              background: mobileView === 'panel' ? 'var(--bg-base)' : 'transparent',
-              color: mobileView === 'panel' ? 'var(--text-primary)' : 'var(--text-body)',
-              border: 'none', borderBottom: mobileView === 'panel' ? '2px solid var(--green)' : '2px solid transparent',
-              cursor: 'pointer',
-            }}
-          >
-            ANALYSIS
-          </button>
-          <button
-            onClick={() => setMobileView('chart')}
-            style={{
-              flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
-              background: mobileView === 'chart' ? 'var(--bg-base)' : 'transparent',
-              color: mobileView === 'chart' ? 'var(--text-primary)' : 'var(--text-body)',
-              border: 'none', borderBottom: mobileView === 'chart' ? '2px solid var(--green)' : '2px solid transparent',
-              cursor: 'pointer',
-            }}
-          >
-            CHART
-          </button>
-        </div>
+      {appView === 'signal' && (
+        <>
+          {/* Mobile view toggle */}
+          {isMobile && (
+            <div className="flex mobile-view-toggle" style={{ background: 'var(--bg-deep)', borderBottom: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setMobileView('panel')}
+                style={{
+                  flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                  background: mobileView === 'panel' ? 'var(--bg-base)' : 'transparent',
+                  color: mobileView === 'panel' ? 'var(--text-primary)' : 'var(--text-body)',
+                  border: 'none', borderBottom: mobileView === 'panel' ? '2px solid var(--green)' : '2px solid transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                ANALYSIS
+              </button>
+              <button
+                onClick={() => setMobileView('chart')}
+                style={{
+                  flex: 1, padding: '8px 0', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
+                  background: mobileView === 'chart' ? 'var(--bg-base)' : 'transparent',
+                  color: mobileView === 'chart' ? 'var(--text-primary)' : 'var(--text-body)',
+                  border: 'none', borderBottom: mobileView === 'chart' ? '2px solid var(--green)' : '2px solid transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                CHART
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 flex app-layout" style={{ padding: isMobile ? 0 : 12, gap: isMobile ? 0 : 12, minHeight: 0 }}>
+            {/* Chart card */}
+            <div
+              className="flex-1 flex flex-col overflow-hidden chart-card"
+              style={{
+                borderRadius: isMobile ? 0 : 10,
+                border: isMobile ? 'none' : '1px solid #1c2e3d',
+                overflow: 'hidden',
+                display: isMobile && mobileView !== 'chart' ? 'none' : 'flex',
+              }}
+            >
+              <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
+            </div>
+            {/* Panel */}
+            <div
+              className="panel-wrapper"
+              style={{
+                width: isMobile ? '100%' : 480,
+                minWidth: isMobile ? 0 : 480,
+                flexShrink: 0,
+                borderRadius: isMobile ? 0 : 10,
+                border: isMobile ? 'none' : '1px solid #1c2e3d',
+                overflow: 'hidden',
+                display: isMobile && mobileView !== 'panel' ? 'none' : 'block',
+                flex: isMobile ? 1 : undefined,
+              }}
+            >
+              <Panel
+                signals={signals} data={data} lastFetch={lastFetch} isStale={isStale}
+                scoreHistory={scoreHistory} ticker={activeTicker} activeTf={activeTf}
+                onTfChange={setActiveTf} onOpenWeights={() => setWeightsOpen(true)} weights={weights}
+              />
+            </div>
+          </div>
+        </>
       )}
 
-      <div className="flex-1 flex app-layout" style={{ padding: isMobile ? 0 : 12, gap: isMobile ? 0 : 12, minHeight: 0 }}>
-        {/* Chart card */}
-        <div
-          className="flex-1 flex flex-col overflow-hidden chart-card"
-          style={{
-            borderRadius: isMobile ? 0 : 10,
-            border: isMobile ? 'none' : '1px solid #1c2e3d',
-            overflow: 'hidden',
-            display: isMobile && mobileView !== 'chart' ? 'none' : 'flex',
-          }}
-        >
-          <TradingViewWidget ticker={activeTicker} interval={chartInterval} />
+      {appView === 'weekly' && (
+        <div className="flex-1" style={{ minHeight: 0, overflowY: 'auto' }}>
+          <WeeklyBrief />
         </div>
-        {/* Panel */}
-        <div
-          className="panel-wrapper"
-          style={{
-            width: isMobile ? '100%' : 480,
-            minWidth: isMobile ? 0 : 480,
-            flexShrink: 0,
-            borderRadius: isMobile ? 0 : 10,
-            border: isMobile ? 'none' : '1px solid #1c2e3d',
-            overflow: 'hidden',
-            display: isMobile && mobileView !== 'panel' ? 'none' : 'block',
-            flex: isMobile ? 1 : undefined,
-          }}
-        >
-          <Panel
-            signals={signals} data={data} lastFetch={lastFetch} isStale={isStale}
-            scoreHistory={scoreHistory} ticker={activeTicker} activeTf={activeTf}
-            onTfChange={setActiveTf} onOpenWeights={() => setWeightsOpen(true)} weights={weights}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Modals */}
       {compareOpen && (
