@@ -31,7 +31,11 @@ function buildMockBriefing() {
   };
 
   return {
-    generatedAt: new Date(now.getTime() - 3600000).toISOString(),
+    generatedAt: new Date(now.getTime() - 86400000 * 2).toISOString(),
+    snapshotUpdatedAt: new Date(now.getTime() - 3600000).toISOString(),
+    majorMoves: [
+      { symbol: 'Oil WTI', move: 3.42, direction: 'down' },
+    ],
     weekLabel,
     snapshot: [
       { label: 'SPY', symbol: 'SPY', price: 548.32, change: -0.84 },
@@ -109,6 +113,24 @@ export default function WeeklyBrief() {
 
       {ai?.alertBanner && <AlertBanner alert={ai.alertBanner} />}
 
+      {/* Major move intraday alert */}
+      {briefing.majorMoves?.length > 0 && (
+        <div className="rounded-[10px]" style={{
+          background: 'var(--bg-base)', border: '1px solid var(--border)',
+          borderLeft: '3px solid var(--amber)', padding: '10px 14px', marginBottom: 12,
+        }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--amber)', textTransform: 'uppercase' }}>MAJOR MOVE</span>
+            {briefing.majorMoves.map((m, i) => (
+              <span key={i} style={{ fontSize: 12, color: m.direction === 'up' ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                {m.symbol} {m.direction === 'up' ? '▲' : '▼'} {m.move}%
+              </span>
+            ))}
+            <span style={{ fontSize: 10, color: 'var(--text-body)', opacity: 0.4, marginLeft: 'auto' }}>since last snapshot</span>
+          </div>
+        </div>
+      )}
+
       <MarketSnapshot snapshot={briefing.snapshot} macro={briefing.macro} />
 
       <PrimaryNarrative narrative={ai?.narrative} />
@@ -122,7 +144,7 @@ export default function WeeklyBrief() {
 
       <StrategicLevels levels={ai?.strategicLevels} />
 
-      <WeeklyFooter weekLabel={briefing.weekLabel} generatedAt={briefing.generatedAt} />
+      <WeeklyFooter weekLabel={briefing.weekLabel} generatedAt={briefing.generatedAt} snapshotUpdatedAt={briefing.snapshotUpdatedAt} />
     </div>
   );
 }

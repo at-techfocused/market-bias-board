@@ -7,8 +7,16 @@
   ],
   "crons": [
     {
-      "path": "/api/weekly/generate",
+      "path": "/api/weekly/generate?mode=full",
       "schedule": "0 23 * * 0"
+    },
+    {
+      "path": "/api/weekly/generate?mode=full",
+      "schedule": "0 12 * * 3"
+    },
+    {
+      "path": "/api/weekly/generate?mode=snapshot",
+      "schedule": "0 10,14,18,22 * * 1-5"
     }
   ]
 }

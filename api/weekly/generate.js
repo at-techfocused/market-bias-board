@@ -5,11 +5,14 @@ import Anthropic from '@anthropic-ai/sdk';
 
 function getWeekDates() {
   const now = new Date();
-  // Find next Monday
   const day = now.getUTCDay();
-  const daysUntilMon = day === 0 ? 1 : (8 - day);
+  // Find this week's Monday (or next Monday if Sunday)
+  let daysToMon;
+  if (day === 0) daysToMon = 1;          // Sunday → tomorrow
+  else if (day === 6) daysToMon = 2;     // Saturday → day after tomorrow
+  else daysToMon = -(day - 1);           // Weekday → go back to this Monday
   const mon = new Date(now);
-  mon.setUTCDate(now.getUTCDate() + daysUntilMon);
+  mon.setUTCDate(now.getUTCDate() + daysToMon);
   mon.setUTCHours(0, 0, 0, 0);
 
   const fri = new Date(mon);
@@ -27,7 +30,7 @@ function getWeekDates() {
   return { monStr, friStr, weekLabel };
 }
 
-// ── Step 1: Market snapshot via Yahoo Finance ──
+// ── Market snapshot via Yahoo Finance (free, no key) ──
 
 async function fetchSnapshot() {
   const tickers = [
@@ -47,8 +50,7 @@ async function fetchSnapshot() {
       const json = await res.json();
       const result = json.chart?.result?.[0];
       const meta = result?.meta;
-      const quote = result?.indicators?.quote?.[0];
-      if (!meta || !quote) throw new Error('No data');
+      if (!meta) throw new Error('No data');
 
       const price = meta.regularMarketPrice;
       const prevClose = meta.chartPreviousClose || meta.previousClose;
@@ -63,38 +65,32 @@ async function fetchSnapshot() {
   return results;
 }
 
-// ── Step 2: VIX and 10Y yield via Alpha Vantage ──
+// ── VIX and 10Y yield via Yahoo Finance (free, no key) ──
 
 async function fetchMacro() {
-  const key = process.env.ALPHA_VANTAGE_KEY;
-  if (!key) {
-    console.error('[Weekly] ALPHA_VANTAGE_KEY not set');
-    return { vix: null, yield10y: null };
-  }
-
   const fetchQuote = async (symbol) => {
     try {
-      const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${key}`;
-      const res = await fetch(url);
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      const q = json['Global Quote'];
-      if (!q || !q['05. price']) throw new Error('No quote data');
-      return {
-        price: parseFloat(q['05. price']),
-        changePct: parseFloat((q['10. change percent'] || '0').replace('%', '')),
-      };
+      const meta = json.chart?.result?.[0]?.meta;
+      if (!meta) throw new Error('No data');
+      const price = meta.regularMarketPrice;
+      const prevClose = meta.chartPreviousClose || meta.previousClose;
+      const changePct = prevClose ? ((price - prevClose) / prevClose * 100) : 0;
+      return { price: parseFloat(price.toFixed(2)), changePct: parseFloat(changePct.toFixed(2)) };
     } catch (err) {
-      console.error(`[Weekly] Alpha Vantage failed for ${symbol}:`, err.message);
+      console.error(`[Weekly] Macro fetch failed for ${symbol}:`, err.message);
       return null;
     }
   };
 
-  const [vix, yield10y] = await Promise.all([fetchQuote('VIX'), fetchQuote('TNX')]);
+  const [vix, yield10y] = await Promise.all([fetchQuote('^VIX'), fetchQuote('^TNX')]);
   return { vix, yield10y };
 }
 
-// ── Step 3: Earnings calendar via FMP ──
+// ── Earnings calendar via FMP ──
 
 async function fetchEarnings(monStr, friStr) {
   const key = process.env.FMP_API_KEY;
@@ -110,7 +106,6 @@ async function fetchEarnings(monStr, friStr) {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
-    // For upcoming earnings, actual revenue is null — filter on revenueEstimated
     const rev = (e) => e.revenueEstimated ?? e.revenue ?? 0;
     return data
       .filter((e) => rev(e) > 1_000_000_000)
@@ -129,7 +124,7 @@ async function fetchEarnings(monStr, friStr) {
   }
 }
 
-// ── Step 4: Economic calendar via FMP ──
+// ── Economic calendar via FMP ──
 
 async function fetchEconomic(monStr, friStr) {
   const key = process.env.FMP_API_KEY;
@@ -142,7 +137,6 @@ async function fetchEconomic(monStr, friStr) {
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
-    // FMP v3 doesn't have an 'impact' field — filter by high-impact keywords
     const HI_KEYWORDS = ['GDP', 'CPI', 'FOMC', 'Fed', 'Nonfarm', 'NFP', 'Unemployment', 'Retail Sales',
       'PMI', 'Interest Rate', 'Consumer Confidence', 'PPI', 'Core PCE', 'PCE', 'Jobless Claims',
       'Housing Starts', 'Industrial Production', 'Trade Balance', 'Durable Goods'];
@@ -151,7 +145,7 @@ async function fetchEconomic(monStr, friStr) {
       (e.impact === 'High') || HI_KEYWORDS.some((kw) => (e.event || '').includes(kw));
 
     return data
-      .filter((e) => e.event && (isHighImpact(e) || e.impact === 'High'))
+      .filter((e) => e.event && isHighImpact(e))
       .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
       .slice(0, 8)
       .map((e) => ({
@@ -166,7 +160,7 @@ async function fetchEconomic(monStr, friStr) {
   }
 }
 
-// ── Step 5: AI generation ──
+// ── AI narrative generation ──
 
 async function generateNarrative(snapshotData, earningsData, economicData, weekLabel, macroData) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -179,7 +173,7 @@ async function generateNarrative(snapshotData, earningsData, economicData, weekL
 You will receive structured market data and must return a JSON object only — no markdown, no preamble, no explanation.
 Respond with exactly this JSON shape:
 {
-  "weekLabel": "Apr 6–10, 2026",
+  "weekLabel": "Jun 23–27, 2026",
   "alertBanner": {
     "active": true,
     "level": "critical",
@@ -224,35 +218,103 @@ WEEK: ${weekLabel}`;
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
-      messages: [
-        { role: 'user', content: userMessage },
-      ],
+      messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt,
     });
 
     const text = response.content[0]?.text;
     if (!text) throw new Error('Empty AI response');
 
-    // Extract JSON from response (handle possible markdown wrapping)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON found in AI response');
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    return parsed;
+    return JSON.parse(jsonMatch[0]);
   } catch (err) {
     console.error('[Weekly] AI generation failed:', err.message);
     return null;
   }
 }
 
-// ── Core generation pipeline (used by both cron handler and on-demand) ──
+// ── Major move detection ──
 
-export async function runGeneration() {
-  console.log('[Weekly] Starting weekly briefing generation...');
+const MOVE_THRESHOLDS = { SPY: 1.5, QQQ: 2.0, 'GC=F': 2.0, 'CL=F': 3.0, 'BTC-USD': 4.0 };
+
+function detectMajorMoves(oldSnapshot, newSnapshot) {
+  if (!oldSnapshot?.length || !newSnapshot?.length) return [];
+  const moves = [];
+  for (const fresh of newSnapshot) {
+    const old = oldSnapshot.find((s) => s.symbol === fresh.symbol);
+    if (!old?.price || !fresh.price) continue;
+    const pctMove = Math.abs((fresh.price - old.price) / old.price * 100);
+    const threshold = MOVE_THRESHOLDS[fresh.symbol] || 2.0;
+    if (pctMove >= threshold) {
+      moves.push({ symbol: fresh.label, move: parseFloat(pctMove.toFixed(2)), direction: fresh.price > old.price ? 'up' : 'down' });
+    }
+  }
+  return moves;
+}
+
+// ── KV helpers ──
+
+async function readBriefing() {
+  try {
+    const raw = await kv.get('weekly:briefing');
+    if (!raw) return null;
+    return typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch (err) {
+    console.error('[Weekly] KV read error:', err.message);
+    return null;
+  }
+}
+
+async function storeBriefing(briefing) {
+  try {
+    await kv.set('weekly:briefing', JSON.stringify(briefing));
+    await kv.set('weekly:generated_at', briefing.generatedAt);
+    console.log('[Weekly] Briefing stored in KV');
+  } catch (err) {
+    console.error('[Weekly] KV write failed:', err.message);
+  }
+}
+
+// ── Snapshot-only refresh (every 4h on weekdays) ──
+
+export async function runSnapshotRefresh() {
+  console.log('[Weekly] Running snapshot refresh...');
+
+  const existing = await readBriefing();
+  if (!existing) {
+    console.log('[Weekly] No existing briefing — running full generation instead');
+    return runFullGeneration();
+  }
+
+  const [snapshotData, macroData] = await Promise.all([fetchSnapshot(), fetchMacro()]);
+
+  // Check for major moves
+  const majorMoves = detectMajorMoves(existing.snapshot, snapshotData);
+  if (majorMoves.length > 0) {
+    console.log('[Weekly] Major moves detected:', majorMoves);
+  }
+
+  const briefing = {
+    ...existing,
+    snapshot: snapshotData,
+    macro: macroData,
+    snapshotUpdatedAt: new Date().toISOString(),
+    majorMoves: majorMoves.length > 0 ? majorMoves : (existing.majorMoves || null),
+  };
+
+  await storeBriefing(briefing);
+  return { briefing, majorMoves };
+}
+
+// ── Full generation with AI narrative (twice weekly) ──
+
+export async function runFullGeneration() {
+  console.log('[Weekly] Starting full briefing generation...');
 
   const { monStr, friStr, weekLabel } = getWeekDates();
 
-  // Run independent fetches in parallel
   const [snapshotData, macroData, earningsData, economicData] = await Promise.all([
     fetchSnapshot(),
     fetchMacro(),
@@ -262,43 +324,50 @@ export async function runGeneration() {
 
   console.log('[Weekly] Data fetched. Snapshot:', snapshotData.length, 'Earnings:', earningsData.length, 'Economic:', economicData.length);
 
-  // AI generation
   const aiOutput = await generateNarrative(snapshotData, earningsData, economicData, weekLabel, macroData);
 
-  // Assemble briefing
   const briefing = {
     generatedAt: new Date().toISOString(),
+    snapshotUpdatedAt: new Date().toISOString(),
     weekLabel,
     snapshot: snapshotData,
     macro: macroData,
     earnings: earningsData,
     economic: economicData,
     ai: aiOutput,
+    majorMoves: null,
   };
 
-  // Store in KV
-  try {
-    await kv.set('weekly:briefing', JSON.stringify(briefing));
-    await kv.set('weekly:generated_at', briefing.generatedAt);
-    console.log('[Weekly] Briefing stored in KV');
-  } catch (err) {
-    console.error('[Weekly] KV write failed (briefing still returned):', err.message);
-  }
-
-  console.log('[Weekly] Briefing generated successfully');
+  await storeBriefing(briefing);
+  console.log('[Weekly] Full briefing generated');
   return briefing;
 }
 
-// ── Cron / manual trigger handler ──
+// Keep backward compat for briefing.js on-demand import
+export const runGeneration = runFullGeneration;
+
+// ── Cron handler — route based on query param ──
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
+  const mode = req.query.mode || 'full';
+
   try {
-    const briefing = await runGeneration();
-    return res.status(200).json({ success: true, generatedAt: briefing.generatedAt });
+    if (mode === 'snapshot') {
+      const { briefing, majorMoves } = await runSnapshotRefresh();
+      return res.status(200).json({
+        success: true,
+        mode: 'snapshot',
+        snapshotUpdatedAt: briefing.snapshotUpdatedAt,
+        majorMoves: majorMoves || [],
+      });
+    }
+
+    const briefing = await runFullGeneration();
+    return res.status(200).json({ success: true, mode: 'full', generatedAt: briefing.generatedAt });
   } catch (err) {
     console.error('[Weekly] Generation failed:', err);
     return res.status(500).json({ success: false, error: 'Generation failed' });
