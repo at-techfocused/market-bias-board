@@ -2,7 +2,6 @@ const IS_PROD = import.meta.env.PROD;
 
 // ── Symbol alias map ──
 // Maps display symbols (what TradingView uses) to Yahoo Finance tickers.
-// Without this, "WTI" resolves to W&T Offshore stock instead of crude oil.
 const YAHOO_ALIASES = {
   WTI: 'CL=F',       // WTI Crude Oil futures
   USOIL: 'CL=F',     // alias for crude
@@ -20,23 +19,26 @@ const YAHOO_ALIASES = {
   VIX: '^VIX',       // Volatility Index
 };
 
-function resolveYahooSymbol(ticker) {
-  return YAHOO_ALIASES[ticker.toUpperCase()] || ticker;
-}
-
 function isCrypto(ticker) {
   return ticker.includes(':');
 }
 
-// Parse crypto pair like "BTCUSDT" → { fsym: "BTC", tsym: "USDT" }
-function parseCryptoPair(pair) {
-  const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'GBP', 'BTC', 'ETH', 'BNB'];
+// Map crypto pairs to Yahoo Finance tickers: BINANCE:BTCUSDT → BTC-USD
+function resolveCryptoToYahoo(symbol) {
+  const pair = symbol.split(':').pop();
+  const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'GBP'];
   for (const quote of quoteAssets) {
     if (pair.endsWith(quote) && pair.length > quote.length) {
-      return { fsym: pair.slice(0, -quote.length), tsym: quote };
+      const base = pair.slice(0, -quote.length);
+      return `${base}-USD`;
     }
   }
-  return { fsym: pair.slice(0, -3), tsym: pair.slice(-3) };
+  return `${pair.slice(0, -3)}-USD`;
+}
+
+function resolveYahooSymbol(ticker) {
+  if (isCrypto(ticker)) return resolveCryptoToYahoo(ticker);
+  return YAHOO_ALIASES[ticker.toUpperCase()] || ticker;
 }
 
 // ── Parse normalized candle response { s, t, o, h, l, c, v } ──
@@ -57,9 +59,8 @@ function parseNormalizedCandles(data) {
   }));
 }
 
-// ── Fetch via serverless proxy (production — handles both crypto & stocks) ──
+// ── Fetch via serverless proxy (production) ──
 async function fetchViaProxy(rawTicker, resolution) {
-  const ticker = isCrypto(rawTicker) ? rawTicker : resolveYahooSymbol(rawTicker);
   const now = Math.floor(Date.now() / 1000);
   let intervalSeconds;
   if (resolution === '240') intervalSeconds = 4 * 60 * 60;
@@ -70,7 +71,7 @@ async function fetchViaProxy(rawTicker, resolution) {
 
   const from = now - 300 * intervalSeconds;
   const params = new URLSearchParams({
-    symbol: ticker,
+    symbol: rawTicker,
     resolution,
     from: String(from),
     to: String(now),
@@ -87,53 +88,11 @@ async function fetchViaProxy(rawTicker, resolution) {
   return parseNormalizedCandles(data);
 }
 
-// ── CryptoCompare direct call (dev mode) ──
-async function fetchCryptoDirect(ticker, resolution) {
-  const pair = ticker.split(':').pop();
-  const { fsym, tsym } = parseCryptoPair(pair);
-
-  const endpointMap = {
-    '240': { endpoint: 'histohour', aggregate: 4 },
-    '60': { endpoint: 'histohour', aggregate: 1 },
-    D: { endpoint: 'histoday', aggregate: 1 },
-    W: { endpoint: 'histoday', aggregate: 7 },
-  };
-  const { endpoint, aggregate } = endpointMap[resolution] || endpointMap['240'];
-
-  const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=300&aggregate=${aggregate}`;
-  const res = await fetch(url);
-  const json = await res.json();
-
-  if (!res.ok || json.Response === 'Error') {
-    throw new Error(json.Message || `CryptoCompare error: ${res.status}`);
-  }
-
-  const candles = json.Data?.Data;
-  if (!candles || candles.length === 0) {
-    throw new Error('No data available for this ticker');
-  }
-
-  const valid = candles.filter((c) => c.volumefrom > 0 || c.volumeto > 0);
-  if (valid.length === 0) {
-    throw new Error('No data available for this ticker');
-  }
-
-  return valid.map((c) => ({
-    t: c.time,
-    o: c.open,
-    h: c.high,
-    l: c.low,
-    c: c.close,
-    v: c.volumefrom,
-  }));
-}
-
 // ── Aggregate 1H candles into 4H candles ──
 function aggregateToFourHour(candles) {
   if (!candles || candles.length === 0) return [];
   const buckets = new Map();
   for (const c of candles) {
-    // Group into 4-hour buckets
     const key = Math.floor(c.t / (4 * 3600)) * (4 * 3600);
     if (!buckets.has(key)) {
       buckets.set(key, { t: key, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v });
@@ -148,10 +107,9 @@ function aggregateToFourHour(candles) {
   return Array.from(buckets.values()).sort((a, b) => a.t - b.t);
 }
 
-// ── Yahoo Finance direct call (dev mode — no API key needed) ──
+// ── Yahoo Finance direct call (dev mode — all tickers including crypto) ──
 async function fetchYahooDirect(rawTicker, resolution) {
   const ticker = resolveYahooSymbol(rawTicker);
-  // For 4H (240): fetch 1H data and aggregate
   const needsAggregation = resolution === '240';
   const configMap = {
     '60': { interval: '1h', range: '6mo' },
@@ -199,20 +157,15 @@ async function fetchYahooDirect(rawTicker, resolution) {
   return needsAggregation ? aggregateToFourHour(candles) : candles;
 }
 
-// ── Unified fetch ──
+// ── Unified fetch — everything goes through Yahoo Finance now ──
 async function fetchCandles(ticker, resolution) {
   if (IS_PROD) {
     return fetchViaProxy(ticker, resolution);
-  }
-
-  if (isCrypto(ticker)) {
-    return fetchCryptoDirect(ticker, resolution);
   }
   return fetchYahooDirect(ticker, resolution);
 }
 
 export async function fetchTripleTimeframe(ticker) {
-  // All assets: 1H + 4H + Daily (stocks aggregate 1H→4H)
   const resolutions = ['60', '240', 'D'];
 
   const results = await Promise.allSettled([

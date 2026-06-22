@@ -16,8 +16,22 @@ const YAHOO_ALIASES = {
   VIX: '^VIX',
 };
 
+// Map crypto pairs to Yahoo Finance tickers: BINANCE:BTCUSDT → BTC-USD
+function resolveCryptoToYahoo(symbol) {
+  const pair = symbol.split(':').pop(); // e.g. "BTCUSDT"
+  const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'GBP'];
+  for (const quote of quoteAssets) {
+    if (pair.endsWith(quote) && pair.length > quote.length) {
+      const base = pair.slice(0, -quote.length);
+      return `${base}-USD`;
+    }
+  }
+  // Fallback: assume last 3 chars are quote
+  return `${pair.slice(0, -3)}-USD`;
+}
+
 export default async function handler(req, res) {
-  const { symbol, resolution, from, to } = req.query;
+  const { symbol, resolution } = req.query;
 
   if (!symbol || !resolution) {
     return res.status(400).json({ s: 'error', error: 'Missing required parameters' });
@@ -31,64 +45,13 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // Route everything through Yahoo Finance
   const isCrypto = symbol.includes(':');
+  const resolved = isCrypto
+    ? resolveCryptoToYahoo(symbol)
+    : (YAHOO_ALIASES[symbol.toUpperCase()] || symbol);
 
-  // ── Crypto: CryptoCompare (free, no geo-restrictions, no key needed) ──
-  if (isCrypto) {
-    return fetchCrypto(req, res, symbol, resolution);
-  }
-
-  // ── Stocks / Commodities: Yahoo Finance (resolve aliases first) ──
-  const resolved = YAHOO_ALIASES[symbol.toUpperCase()] || symbol;
-  return fetchStock(req, res, resolved, resolution);
-}
-
-async function fetchCrypto(req, res, symbol, resolution) {
-  const pair = symbol.split(':').pop();
-  const { fsym, tsym } = parseCryptoPair(pair);
-
-  const endpointMap = {
-    '240': { endpoint: 'histohour', aggregate: 4 },
-    '60': { endpoint: 'histohour', aggregate: 1 },
-    D: { endpoint: 'histoday', aggregate: 1 },
-    W: { endpoint: 'histoday', aggregate: 7 },
-  };
-  const { endpoint, aggregate } = endpointMap[resolution] || endpointMap['240'];
-
-  try {
-    const url = `https://min-api.cryptocompare.com/data/v2/${endpoint}?fsym=${fsym}&tsym=${tsym}&limit=300&aggregate=${aggregate}`;
-    const response = await fetch(url);
-    const json = await response.json();
-
-    if (!response.ok || json.Response === 'Error') {
-      return res.status(502).json({
-        s: 'error',
-        error: json.Message || `CryptoCompare returned ${response.status}`,
-      });
-    }
-
-    const candles = json.Data?.Data;
-    if (!candles || candles.length === 0) {
-      return res.status(200).json({ s: 'no_data' });
-    }
-
-    const valid = candles.filter((c) => c.volumefrom > 0 || c.volumeto > 0);
-    if (valid.length === 0) {
-      return res.status(200).json({ s: 'no_data' });
-    }
-
-    return res.status(200).json({
-      s: 'ok',
-      t: valid.map((c) => c.time),
-      o: valid.map((c) => c.open),
-      h: valid.map((c) => c.high),
-      l: valid.map((c) => c.low),
-      c: valid.map((c) => c.close),
-      v: valid.map((c) => c.volumefrom),
-    });
-  } catch (err) {
-    return res.status(502).json({ s: 'error', error: 'Failed to reach CryptoCompare: ' + err.message });
-  }
+  return fetchYahoo(req, res, resolved, resolution);
 }
 
 // Aggregate 1H candles into 4H candles
@@ -109,8 +72,7 @@ function aggregateToFourHour(candles) {
   return Array.from(buckets.values()).sort((a, b) => a.t - b.t);
 }
 
-async function fetchStock(req, res, symbol, resolution) {
-  // For 4H (240): fetch 1H data and aggregate
+async function fetchYahoo(req, res, symbol, resolution) {
   const needsAggregation = resolution === '240';
   const configMap = {
     '60': { interval: '1h', range: '6mo' },
@@ -146,7 +108,6 @@ async function fetchStock(req, res, symbol, resolution) {
       return res.status(200).json({ s: 'no_data' });
     }
 
-    // Filter out null entries (market holidays etc)
     const indices = result.timestamp
       .map((_, i) => i)
       .filter((i) => quote.close[i] != null && quote.open[i] != null);
@@ -180,14 +141,4 @@ async function fetchStock(req, res, symbol, resolution) {
   } catch (err) {
     return res.status(502).json({ s: 'error', error: 'Failed to reach Yahoo Finance: ' + err.message });
   }
-}
-
-function parseCryptoPair(pair) {
-  const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD', 'EUR', 'GBP', 'BTC', 'ETH', 'BNB'];
-  for (const quote of quoteAssets) {
-    if (pair.endsWith(quote) && pair.length > quote.length) {
-      return { fsym: pair.slice(0, -quote.length), tsym: quote };
-    }
-  }
-  return { fsym: pair.slice(0, -3), tsym: pair.slice(-3) };
 }
