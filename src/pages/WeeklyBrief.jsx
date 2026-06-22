@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import AlertBanner from '../components/weekly/AlertBanner';
 import MarketSnapshot from '../components/weekly/MarketSnapshot';
 import PrimaryNarrative from '../components/weekly/PrimaryNarrative';
@@ -7,95 +8,186 @@ import StrategicLevels from '../components/weekly/StrategicLevels';
 import WhatToWatch from '../components/weekly/WhatToWatch';
 import WeeklyFooter from '../components/weekly/WeeklyFooter';
 
-// ── Dynamic mock data — dates computed relative to now ──
-function buildMockBriefing() {
-  const now = new Date();
-  const day = now.getUTCDay();
-  const daysUntilMon = day === 0 ? 1 : day === 1 ? 0 : (8 - day);
-  const mon = new Date(now);
-  mon.setUTCDate(now.getUTCDate() + daysUntilMon);
-  mon.setUTCHours(0, 0, 0, 0);
+function GeneratingState() {
+  const steps = [
+    'Fetching market data',
+    'Checking economic calendar',
+    'Loading earnings reports',
+    'Generating AI narrative',
+    'Assembling briefing',
+  ];
+  const [activeStep, setActiveStep] = useState(0);
 
-  const fri = new Date(mon);
-  fri.setUTCDate(mon.getUTCDate() + 4);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveStep((s) => (s < steps.length - 1 ? s + 1 : s));
+    }, 3000);
+    return () => clearInterval(id);
+  }, [steps.length]);
 
-  const fmt = (d) => d.toISOString().slice(0, 10);
-  const label = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-  const monStr = fmt(mon);
-  const weekLabel = `${label(mon)}–${label(fri)}, ${mon.getUTCFullYear()}`;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
+      <div style={{ textAlign: 'center', maxWidth: 400 }}>
+        <div style={{ position: 'relative', width: 64, height: 64, margin: '0 auto 28px' }}>
+          <div
+            className="generating-ring"
+            style={{
+              position: 'absolute', inset: 0,
+              border: '2px solid transparent',
+              borderTopColor: 'var(--green)',
+              borderRightColor: 'rgba(42,184,184,0.3)',
+              borderRadius: '50%',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute', inset: 8,
+              background: 'rgba(42,184,184,0.08)',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <div
+              className="animate-pulse"
+              style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 12px var(--green)' }}
+            />
+          </div>
+        </div>
 
-  const dayStr = (offset) => {
-    const d = new Date(mon);
-    d.setUTCDate(mon.getUTCDate() + offset);
-    return fmt(d);
-  };
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+          Generating Weekly Brief
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, marginBottom: 28, lineHeight: 1.6 }}>
+          First-time generation takes 15–30 seconds.
+          <br />Subsequent visits load from cache.
+        </div>
 
-  return {
-    generatedAt: new Date(now.getTime() - 86400000 * 2).toISOString(),
-    snapshotUpdatedAt: new Date(now.getTime() - 3600000).toISOString(),
-    majorMoves: [
-      { symbol: 'Oil WTI', move: 3.42, direction: 'down' },
-    ],
-    weekLabel,
-    snapshot: [
-      { label: 'SPY', symbol: 'SPY', price: 548.32, change: -0.84 },
-      { label: 'QQQ', symbol: 'QQQ', price: 462.15, change: -1.22 },
-      { label: 'Gold', symbol: 'GC=F', price: 3284.50, change: 1.45 },
-      { label: 'Oil WTI', symbol: 'CL=F', price: 71.83, change: -2.31 },
-      { label: 'BTC', symbol: 'BTC-USD', price: 68412.00, change: 3.18 },
-    ],
-    macro: {
-      vix: { price: 22.45, changePct: 8.12 },
-      yield10y: { price: 4.38, changePct: -0.91 },
-    },
-    earnings: [
-      { symbol: 'JPM', date: dayStr(0), time: 'bmo', epsEstimated: 4.62, revenueEstimated: 42_800_000_000 },
-      { symbol: 'WFC', date: dayStr(0), time: 'bmo', epsEstimated: 1.24, revenueEstimated: 20_400_000_000 },
-      { symbol: 'UNH', date: dayStr(1), time: 'bmo', epsEstimated: 7.29, revenueEstimated: 109_200_000_000 },
-      { symbol: 'BAC', date: dayStr(1), time: 'bmo', epsEstimated: 0.82, revenueEstimated: 25_600_000_000 },
-      { symbol: 'GS', date: dayStr(2), time: 'bmo', epsEstimated: 12.35, revenueEstimated: 14_800_000_000 },
-      { symbol: 'MS', date: dayStr(2), time: 'bmo', epsEstimated: 1.98, revenueEstimated: 15_200_000_000 },
-      { symbol: 'TSMC', date: dayStr(3), time: 'bmo', epsEstimated: 2.05, revenueEstimated: 25_800_000_000 },
-    ],
-    economic: [
-      { event: 'FOMC Meeting Minutes', date: dayStr(0), time: '14:00', country: 'US' },
-      { event: 'CPI (MoM)', date: dayStr(1), time: '08:30', country: 'US' },
-      { event: 'Core CPI (YoY)', date: dayStr(1), time: '08:30', country: 'US' },
-      { event: 'PPI (MoM)', date: dayStr(2), time: '08:30', country: 'US' },
-      { event: 'Initial Jobless Claims', date: dayStr(3), time: '08:30', country: 'US' },
-      { event: 'Consumer Sentiment (Prelim)', date: dayStr(3), time: '10:00', country: 'US' },
-    ],
-    ai: {
-      weekLabel,
-      alertBanner: {
-        active: true,
-        level: 'high',
-        title: 'CPI print and FOMC minutes dominate the week',
-        body: 'Inflation data on Tuesday will set the tone for rate expectations. FOMC minutes may reveal divisions on the timing of cuts. Elevated VIX at 22.45 suggests the market is pricing event risk.',
-      },
-      narrative: [
-        { text: 'CPI — inflation data is the week\'s key catalyst. Consensus expects 0.3% MoM; a hot print above 0.4% would likely trigger a selloff in rate-sensitive tech.', bold: 'CPI' },
-        { text: 'JPM kicks off bank earnings season Monday pre-market. Credit reserves and NII guidance will signal consumer health and rate margin trajectory.', bold: 'JPM' },
-        { text: 'Gold continues its safe-haven bid, gaining 1.45% last week to $3,284. A CPI miss could accelerate the move toward $3,400.', bold: 'Gold' },
-        { text: 'BTC rallied 3.18% to $68,412 amid growing institutional ETF inflows. The $70K level remains the key psychological resistance to watch.', bold: 'BTC' },
-      ],
-      strategicLevels: [
-        { ticker: 'SPX', price: '5,483', support: '5,400', resistance: '5,560', note: 'Trading below the 20-day EMA. CPI reaction likely determines direction for the rest of the month.' },
-        { ticker: 'NDX', price: '18,420', support: '18,100', resistance: '18,800', note: 'Tech is underperforming. A hot CPI could push NDX below 18,000 support.' },
-        { ticker: 'Gold', price: '3,284', support: '3,220', resistance: '3,350', note: 'Bullish structure intact. Consecutive higher lows since February.' },
-        { ticker: 'BTC', price: '68,412', support: '65,000', resistance: '70,000', note: 'ETF flows remain positive. A break above 70K opens the path to ATH retest.' },
-        { ticker: '10Y', price: '4.38%', support: '4.20%', resistance: '4.50%', note: 'Yields drifting lower on growth concerns. CPI could reverse the trend sharply.' },
-      ],
-      alertLevel: 'high',
-      dominantTheme: 'Inflation data + bank earnings kick off Q2',
-    },
-  };
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left', maxWidth: 260, margin: '0 auto' }}>
+          {steps.map((step, i) => {
+            const done = i < activeStep;
+            const active = i === activeStep;
+            return (
+              <div key={i} className="flex items-center gap-3">
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: done ? 'rgba(42,184,184,0.15)' : active ? 'rgba(42,184,184,0.08)' : 'transparent',
+                  border: done ? '1px solid rgba(42,184,184,0.4)' : active ? '1px solid rgba(42,184,184,0.25)' : '1px solid var(--border)',
+                }}>
+                  {done && <span style={{ fontSize: 10, color: 'var(--green)' }}>&#10003;</span>}
+                  {active && (
+                    <div className="animate-pulse" style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--green)' }} />
+                  )}
+                </div>
+                <span style={{
+                  fontSize: 12,
+                  color: done ? 'var(--green)' : active ? 'var(--text-primary)' : 'var(--text-body)',
+                  opacity: done ? 0.7 : active ? 1 : 0.35,
+                  fontWeight: active ? 600 : 400,
+                }}>
+                  {step}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
-const MOCK_BRIEFING = buildMockBriefing();
+function EmptyState() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div style={{ textAlign: 'center', maxWidth: 360 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+          Weekly brief not yet generated
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-body)', opacity: 0.5, lineHeight: 1.6 }}>
+          The briefing is generated automatically every Sunday at 11PM UTC.
+        </div>
+      </div>
+    </div>
+  );
+}
 
-export default function WeeklyBrief() {
-  const briefing = MOCK_BRIEFING;
+const STALE_MS = 6 * 60 * 60 * 1000;
+
+export default function WeeklyBrief({ briefing, onBriefingLoaded }) {
+  const [loading, setLoading] = useState(!briefing);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (briefing) {
+      const age = Date.now() - new Date(briefing.snapshotUpdatedAt || briefing.generatedAt).getTime();
+      if (age < STALE_MS) {
+        setLoading(false);
+        return;
+      }
+      setLoading(false);
+      fetchBriefingSilent();
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchBriefing() {
+      try {
+        const res = await fetch('/api/weekly/briefing');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.empty) {
+          setGenerating(true);
+          setLoading(false);
+          pollForBriefing();
+        } else {
+          onBriefingLoaded(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('[WeeklyBrief] Fetch failed:', err);
+        if (!cancelled) { setError(true); setLoading(false); }
+      }
+    }
+
+    async function pollForBriefing() {
+      for (let i = 0; i < 12; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        if (cancelled) return;
+        try {
+          const res = await fetch('/api/weekly/briefing');
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (!data.empty && !cancelled) {
+            onBriefingLoaded(data);
+            setGenerating(false);
+            return;
+          }
+        } catch {}
+      }
+      if (!cancelled) { setGenerating(false); setError(true); }
+    }
+
+    fetchBriefing();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function fetchBriefingSilent() {
+    try {
+      const res = await fetch('/api/weekly/briefing');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.empty) onBriefingLoaded(data);
+    } catch {}
+  }
+
+  if (loading) return <GeneratingState />;
+  if (generating) return <GeneratingState />;
+  if (error && !briefing) return <EmptyState />;
+  if (!briefing) return <EmptyState />;
+
   const ai = briefing.ai;
 
   return (
@@ -113,7 +205,6 @@ export default function WeeklyBrief() {
 
       {ai?.alertBanner && <AlertBanner alert={ai.alertBanner} />}
 
-      {/* Major move intraday alert */}
       {briefing.majorMoves?.length > 0 && (
         <div className="rounded-[10px]" style={{
           background: 'var(--bg-base)', border: '1px solid var(--border)',
